@@ -73,7 +73,7 @@ class AppLattice : public App {
 
   virtual void check_reaction() {} //yongfeng
   virtual void check_ballistic(double) {} //yongfeng
-  virtual double real_time(double) {} //yongfeng
+  virtual double real_time(double) { return 0.0; } //yongfeng
   virtual void time_tracer(double) {} //yongfeng
   virtual void concentration_field() {} //yongfeng
 
