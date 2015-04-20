@@ -3,3 +3,7 @@ src/STUBS/libmpi.a
 src/STUBS/mpi.o
 src/spk_mac
 src/style_*.h
+src/.libs
+src/*.o
+src/*.lo
+src/*.lo.d
