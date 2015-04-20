@@ -159,12 +159,12 @@ void DiagRpv::init()
 void DiagRpv::compute()
 {
   int ninter,nfloater;
-  int sites[9],nhop[9],ivalue; // int data 
+  int sites[10],nhop[10],ivalue; // int data
   int estyle = apprpv->engstyle; // energy style 
   int nlocal = apprpv->nlocal;
 //  int *monomer_local = apprpv->monomer_local; // monomers
   double dvalue ; // double data 
-  double msd[9] ;
+  double msd[10] ;
 
   ninter = nfloater = 0;
   dvalue = 0.0;
