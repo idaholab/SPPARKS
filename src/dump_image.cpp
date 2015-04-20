@@ -475,7 +475,7 @@ void DumpImage::init_style()
 
 /* ---------------------------------------------------------------------- */
 
-void DumpImage::write(double time)
+void DumpImage::write(double /*time*/)
 {
   // open new file
 
@@ -584,7 +584,7 @@ void DumpImage::view_params()
 
 void DumpImage::create_image()
 {
-  int i,j,m,n,ivalue;
+  int i,j,m,ivalue;
   double diameter;
   double *color;
 
@@ -629,9 +629,9 @@ void DumpImage::create_image()
   // if 2 sites have same value, do not draw boundary
 
   if (boundflag == YES) {
-    int k,flag;
+    int flag;
     double c1[3],c2[3],c3[4],c4[4];
-    int dimension = domain->dimension;
+    // int dimension = domain->dimension;
     double dx = domain->lattice->xlattice;
     double dy = domain->lattice->ylattice;
     double dz = domain->lattice->zlattice;
@@ -839,14 +839,14 @@ int DumpImage::modify_param(int narg, char **arg)
       int ncount = 1;
       char *nextptr;
       char *ptr = arg[2];
-      while (nextptr = strchr(ptr,'/')) {
+      while ((nextptr = strchr(ptr,'/'))) {
 	ptr = nextptr + 1;
 	ncount++;
       }
       char **ptrs = new char*[ncount+1];
       ncount = 0;
       ptrs[ncount++] = strtok(arg[2],"/");
-      while (ptrs[ncount++] = strtok(NULL,"/"));
+      while ((ptrs[ncount++] = strtok(NULL,"/")));
       ncount--;
       
       int m = 0;

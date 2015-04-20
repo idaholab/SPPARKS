@@ -30,7 +30,7 @@ class Set : protected Pointers {
 
  private:
   int siteindex;
-  int count;
+  int count,number;
   int ivalue,ivaluelo,ivaluehi;
   double dvalue,dvaluelo,dvaluehi;
   int loopflag,regionflag,iregion;

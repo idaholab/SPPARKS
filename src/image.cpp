@@ -741,7 +741,7 @@ void Image::draw_triangle(double *x, double *y, double *z, double *surfaceColor)
 {
   double d1[3], d1len, d2[3], d2len, normal[3], invndotd;
   double xlocal[3], ylocal[3], zlocal[3];
-  double center[3], bounds[6];
+  double center[3];
   double surface[3];
   double depth;
 
@@ -1045,7 +1045,7 @@ void Image::compute_SSAO()
 
 /* ---------------------------------------------------------------------- */
 
-void Image::write_JPG(FILE *fp) 
+void Image::write_JPG(FILE * /*fp*/)
 {
 #ifdef SPPARKS_JPEG
   struct jpeg_compress_struct cinfo;

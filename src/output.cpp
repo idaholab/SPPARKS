@@ -25,7 +25,7 @@
 #include "memory.h"
 #include "error.h"
 
-using namespace SPPARKS_NS;
+namespace SPPARKS_NS {
 
 #define MAXSTR 4096
 
@@ -61,7 +61,7 @@ Output::~Output()
 
 /* ---------------------------------------------------------------------- */
 
-void Output::init(double time)
+void Output::init(double /*time*/)
 {
   for (int i = 0; i < ndump; i++) dumplist[i]->init();
   for (int i = 0; i < ndiag; i++) diaglist[i]->init();
@@ -391,7 +391,7 @@ void Output::stats_header()
 double Output::next_time(double tcurrent, int logfreq, double delta, 
 			 int nrepeat, double scale, double delay)
 {
-  double tnew;
+  double tnew = 0.0;
 
   if (logfreq == 0) {
     tnew = ceil(tcurrent/delta) * delta;
@@ -411,4 +411,6 @@ double Output::next_time(double tcurrent, int logfreq, double delta,
 
   tnew = MAX(tnew,delay);
   return tnew;
+}
+
 }

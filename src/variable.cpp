@@ -22,7 +22,7 @@
 #include "memory.h"
 #include "error.h"
 
-using namespace SPPARKS_NS;
+namespace SPPARKS_NS {
 
 #define VARDELTA 4
 #define MAXLEVEL 4
@@ -329,7 +329,7 @@ char *Variable::retrieve(char *name)
   if (ivar == -1) return NULL;
   if (index[ivar] >= num[ivar]) return NULL;
 
-  char *str;
+  char *str = NULL;
   if (style[ivar] == INDEX || style[ivar] == WORLD || 
       style[ivar] == UNIVERSE) {
     str = data[ivar][index[ivar]];
@@ -777,3 +777,4 @@ int Variable::keyword(char *word, double &value)
   return 0;
 }
 
+}

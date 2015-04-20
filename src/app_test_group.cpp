@@ -25,6 +25,14 @@
 #include "math.h"
 #include "output.h"
 
+/**
+ * Let's ignore unused parameter warnings from this file...
+ */
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-parameter"
+#endif
+
 using namespace SPPARKS_NS;
 
 #define EPSILON 1.0e-10
@@ -284,3 +292,10 @@ double AppTestGroup::compute_propensity(int m)
   p = MAX(p,pmin);
   return p;
 }
+
+/**
+ * Turn warnings back on, though this probably isn't necessary for a cpp file...
+ */
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif

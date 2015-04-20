@@ -83,6 +83,7 @@ AppLattice::AppLattice(SPPARKS *spk, int narg, char **arg) : App(spk,narg,arg)
   nsweeps = 0;
   
   update_only = 0;
+  reaction_flag = ballistic_flag = time_flag = 0; //yongfeng  
 }
 
 /* ---------------------------------------------------------------------- */
@@ -332,11 +333,15 @@ void AppLattice::setup()
   if (solve) {
     comm->all();
     for (int i = 0; i < nset; i++) {
-      for (int m = 0; m < set[i].nlocal; m++)
+      for (int m = 0; m < set[i].nlocal; m++){
 	set[i].propensity[m] = site_propensity(set[i].site2i[m]);
+        }
       set[i].solve->init(set[i].nlocal,set[i].propensity);
     }
   }
+
+  // check reaction before simulation, yongfeng  
+  if(reaction_flag)  check_reaction();
 
   // convert per-sector time increment info to KMC params
 
@@ -478,9 +483,15 @@ void AppLattice::iterate_kmc_global(double stoptime)
 
     if (isite >= 0) {
       time += dt_step;
+      if (time_flag) { //yongfeng 
+         time_tracer(dt_step); 
+         realtime += dt_step*real_time(time);
+      }
       if (time <= stoptime) {
 	site_event(isite,ranapp);
 	naccept++;
+        if (reaction_flag) check_reaction(); //yongfeng 
+        if (concentrationflag) concentration_field(); //yongfeng 
 	timer->stamp(TIME_APP);
       } else {
 	done = 1;
@@ -577,6 +588,7 @@ void AppLattice::iterate_kmc_sector(double stoptime)
 	  timesector += dt;
 	  if (timesector >= dt_kmc) done = 1;
 	  else {
+            if(time_flag) time_tracer(dt); //yongfeng, pass dt to app_rpv  
 	    site_event(site2i[isite],ranapp);
 	    naccept++;
 	  }
@@ -596,6 +608,12 @@ void AppLattice::iterate_kmc_sector(double stoptime)
 
     nsweeps++;
     time += dt_kmc;
+    if (time_flag) { //yongfeng 
+      realtime += dt_kmc/nprocs*real_time(time);
+    }      
+    if (reaction_flag) check_reaction(); //yongfeng
+    if (ballistic_flag) check_ballistic(time); //yongfeng
+    if (concentrationflag) concentration_field(); //yongfeng  
     if (time >= stoptime) alldone = 1;
     if (alldone || time >= nextoutput)
       nextoutput = output->compute(time,alldone);

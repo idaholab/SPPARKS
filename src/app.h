@@ -25,6 +25,7 @@ class App : protected Pointers {
   int appclass;           // one of the enum values
   char *style;            // style name of app
   double time;            // current simulation time due to executed events
+  double realtime;        // current real time, scaled by vacancy concentration 
   double stoptime;        // time at which to stop this run
   int sites_exist;        // 1 if sites have been created
 

@@ -19,6 +19,8 @@
 
 namespace SPPARKS_NS {
 
+class Variable;
+
 class Input : protected Pointers {
  public:
   int narg;                    // # of command args

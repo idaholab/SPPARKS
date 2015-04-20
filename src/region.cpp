@@ -22,7 +22,7 @@ using namespace SPPARKS_NS;
 
 /* ---------------------------------------------------------------------- */
 
-Region::Region(SPPARKS *spk, int narg, char **arg) : Pointers(spk)
+Region::Region(SPPARKS *spk, int /*narg*/, char **arg) : Pointers(spk)
 {
   int n = strlen(arg[0]) + 1;
   id = new char[n];
