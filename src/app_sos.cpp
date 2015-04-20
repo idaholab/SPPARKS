@@ -330,7 +330,7 @@ void AppSOS::clear_events(int i)
    event = exchange with partner with probability = propensity
 ------------------------------------------------------------------------- */
 
-void AppSOS::add_event(int i, int partner, double propensity, int incre)
+void AppSOS::add_event(int i, int partner, double propensity, int /*incre*/)
 {
   // grow event list and setup free list
 

@@ -230,7 +230,7 @@ int Lattice::ncolors(int delcolor)
 int Lattice::id2color(tagint idsite, int delcolor)
 {
   tagint i,j,k;
-  int ncolor1d,icolor;
+  int ncolor1d,icolor = 0;
 
   int nx = domain->nx;
   int ny = domain->ny;

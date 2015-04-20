@@ -713,8 +713,16 @@ void CommOffLattice::perform_swap(Swap *swap)
 	sbuf[i++] = xyz[m][2];
 	if (site_only) sbuf[i++] = site[m];
 	else {
-	  for (k = 0; k < ninteger; k++) sbuf[i++] = iarray[k][i];
-	  for (k = 0; k < ndouble; k++) sbuf[i++] = darray[k][i];
+          for (k = 0; k < ninteger; k++)
+          {
+            sbuf[i] = iarray[k][i];
+            i++;
+          }
+          for (k = 0; k < ndouble; k++)
+          {
+            sbuf[i] = darray[k][i];
+            i++;
+          }
 	}
 	m = next[m];
       }
@@ -1004,7 +1012,8 @@ void CommOffLattice::perform_swap_reverse(Swap *swap)
       for (i = 0; i < rsite[irecv][n]; i++) {
 	j = appoff->new_owned_site();
 	jbin = rindex[irecv][n];
-	id[j] = static_cast<tagint> (rbuf[m++]);
+        id[j] = static_cast<tagint> (rbuf[m]);
+        m++;
 	xyz[j][0] = rbuf[m++];
 	xyz[j][1] = rbuf[m++];
 	xyz[j][2] = rbuf[m++];
@@ -1012,7 +1021,11 @@ void CommOffLattice::perform_swap_reverse(Swap *swap)
 	else {
 	  for (k = 0; k < ninteger; k++) 
 	    iarray[k][j] = static_cast<int> (rbuf[m++]);
-	  for (k = 0; k < ndouble; k++) darray[k][m] = rbuf[m++];
+          for (k = 0; k < ndouble; k++)
+          {
+            darray[k][m] = rbuf[m];
+            m++;
+          }
 	}
 	bin[j] = jbin;
 	appoff->add_to_bin(j,jbin);
@@ -1028,7 +1041,7 @@ void CommOffLattice::perform_swap_reverse(Swap *swap)
 ------------------------------------------------------------------------- */
 
 int CommOffLattice::bin_sector_ghost(int isector, int ibin, 
-				     int nbinx, int nbiny, int nbinz)
+				     int nbinx, int nbiny, int /*nbinz*/)
 {
   int i = ibin % nbinx;
   int j = (ibin/nbinx) % nbiny;

@@ -77,7 +77,7 @@ DumpText::DumpText(SPPARKS *spk, int narg, char **arg) : Dump(spk, narg, arg)
   // setup vformat strings, one per field
 
   for (int i = 0; i < size_one; i++) {
-    char *format;
+    char *format = NULL;
     if (vtype[i] == INT) format = (char *) "%d ";
     else if (vtype[i] == DOUBLE) format = (char *) "%g ";
     else if (vtype[i] == TAGINT) format = (char *) TAGINT_FORMAT " ";

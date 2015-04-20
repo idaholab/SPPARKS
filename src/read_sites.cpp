@@ -90,7 +90,6 @@ void ReadSites::command(int narg, char **arg)
     open(arg[0]);
   }
   header();
-
   // if simulation box does not exist, create it
 
   if (!domain->box_exist) {

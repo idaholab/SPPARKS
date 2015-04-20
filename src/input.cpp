@@ -650,8 +650,8 @@ void Input::app_style()
   else if (strcmp(arg[0],#key) == 0) app = new Class(spk,narg,arg);
 #include "style_app.h"
 #undef APP_CLASS
-
-  else error->all(FLERR,"Illegal app_style command");
+//  else {fprintf(screen, "%f", arg[0]); error->all(FLERR,"Illegal app_style command");}
+  else {error->all(FLERR,"Illegal app_style command");}
 }
 
 /* ---------------------------------------------------------------------- */
@@ -669,9 +669,9 @@ void Input::diag_style()
 {
   if (app == NULL) error->all(FLERR,"Diag_style command before app_style set");
 
-  if (narg < 1) error->all(FLERR,"Illegal diag_style command");
+  if (narg < 1) error->all(FLERR,"Illegal diag_styles command");
 
-  if (strcmp(arg[0],"none") == 0) error->all(FLERR,"Illegal diag_style command");
+  if (strcmp(arg[0],"none") == 0) error->all(FLERR,"Illegal diag_styles command");
 
 #define DIAG_CLASS
 #define DiagStyle(key,Class) \
@@ -682,7 +682,7 @@ void Input::diag_style()
 #include "style_diag.h"
 #undef DIAG_CLASS
 
-  else error->all(FLERR,"Illegal diag_style command");
+  else error->all(FLERR,"Illegal diag_styles command");
 }
 
 /* ---------------------------------------------------------------------- */
@@ -809,6 +809,7 @@ void Input::seed()
   int seed = atoi(arg[0]);
   if (seed <= 0) error->all(FLERR,"Illegal seed command");
 
+  fprintf(screen,"The random number is: %d \n", seed); 
   ranmaster->init(seed);
 }
 

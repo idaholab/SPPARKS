@@ -27,21 +27,28 @@
 
 namespace SPPARKS_NS {
 
+class Output;
+
+
 // universal defines inside namespace
 
 #define FLERR __FILE__,__LINE__
 
+#ifndef MIN
 #define MIN(A,B) ((A) < (B) ? (A) : (B))
+#endif
+#ifndef MAX
 #define MAX(A,B) ((A) > (B) ? (A) : (B))
+#endif
 
 class Pointers {
 public:
   Pointers(SPPARKS *ptr) :
     spk(ptr),
-    universe(ptr->universe),
-    input(ptr->input),
     memory(ptr->memory),
     error(ptr->error),
+    universe(ptr->universe),
+    input(ptr->input),
     app(ptr->app),
     solve(ptr->solve),
     domain(ptr->domain),
@@ -79,5 +86,3 @@ public:
 }
 
 #endif
-
-

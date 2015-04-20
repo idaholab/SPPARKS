@@ -32,6 +32,7 @@ App::App(SPPARKS *spk, int narg, char **arg) : Pointers(spk)
 
   appclass = GENERAL;
   time = 0.0;
+  realtime = 0.0; 
   first_run = 1;
 
   ninteger = ndouble = 0;
@@ -147,6 +148,7 @@ void App::run(int narg, char **arg)
 void App::reset_time(double newtime)
 {
   time = newtime;
+  realtime = time;
 }
 
 /* ----------------------------------------------------------------------

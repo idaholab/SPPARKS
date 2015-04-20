@@ -19,6 +19,14 @@
 #include "random_park.h"
 #include "error.h"
 
+/**
+ * Let's ignore unused parameter warnings from this file...
+ */
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-parameter"
+#endif
+
 using namespace SPPARKS_NS;
 
 /* ---------------------------------------------------------------------- */
@@ -190,3 +198,10 @@ void AppIsing::site_event(int i, RandomPark *random)
 
   solve->update(nsites,sites,propensity);
 }
+
+/**
+ * Turn warnings back on, though this probably isn't necessary for a cpp file...
+ */
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
