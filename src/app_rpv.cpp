@@ -401,21 +401,26 @@ void AppRpv::define_2NN()
     ncandidate = 0;
     n1nn = numneigh[i];
     n2nn = 0;
-    for (j =0; j < n1nn; j++) { 
+    for (j =0; j < n1nn; j++) 
+    { 
       jd = neighbor[i][j]; 
       njnn = numneigh[jd];
-      for (k = 0; k < njnn; k++) { 
+      for (k = 0; k < njnn; k++) 
+      { 
         kd = neighbor[jd][k];
-        if(kd != i) {candidate[ncandidate] = kd; //skip i itself 
-        ncandidate++;
+        
+        //skip i itself
+        if (kd != i) { 
+          candidate[ncandidate] = kd; 
+          ncandidate++;
         }
       }
     }
 
-    for(j = 0; j < ncandidate; j++) {
+    for (j = 0; j < ncandidate; j++) {
       jd = candidate[j];
       frequency[j]++;  
-      for (k = j+1; k<ncandidate; k++) {
+      for (k = j+1; k < ncandidate; k++) {
         kd = candidate[k];
         if(kd == jd) frequency[j]++;
       }  
@@ -564,23 +569,23 @@ void AppRpv::setup_app()
 
 double AppRpv::sites_energy(int i, int estyle)
 {
-  int j,jd,n1nn,n2nn;
+  int j,jd,n1nn;
   double eng = 0.0; 
 
-  n1nn = numneigh[i];  //num of 1NN
-  if(estyle == 2) n2nn = numneigh2[i];  //num of 2NN, not defined  
 
   //energy from 1NN bonds
+  n1nn = numneigh[i];  //num of 1NN
   for (j = 0; j < n1nn; j++) {
     jd = neighbor[i][j];
-    eng += ebond1[element[i]][element[jd]]/2.0;      
+    eng += ebond1[element[i]][element[jd]] / 2.0;      
   }
 
   //energy from 2NN bonds 
   if (estyle == 2) {     
+    int n2nn = numneigh2[i];
     for (j = 0; j < n2nn; j++) {
-    jd = neighbor2[i][j];
-    eng += ebond2[element[i]][element[jd]]/2.0;
+      jd = neighbor2[i][j];
+      eng += ebond2[element[i]][element[jd]] / 2.0;
     }     
   }
 
@@ -607,41 +612,48 @@ double AppRpv::elastic_energy(int i, int itype)
 double AppRpv::site_SP_energy(int i, int j, int estyle)
 {
   double eng = 0.0; 
-  double eng0i,eng0j,eng1i,eng1j; //energy before and after jump 
-  int m,jd;
+  double eng0i, eng0j, eng1i, eng1j; //energy before and after jump 
+  int m, jd;
 
-  eng0i = 2*sites_energy(i,estyle); //broking bond with i initially, 
-  eng0j = 2*sites_energy(j,estyle); //broking bond with j initially 
+  eng0i = 2 * sites_energy(i,estyle); //broken bond with i initially, 
+  eng0j = 2 * sites_energy(j,estyle); //broken bond with j initially 
   eng1i = eng1j = ebond1[element[i]][element[j]]; //bond between i&j, 
   
   //bond formed with j with after switch 
-  for(m=0; m<numneigh[i]; m++) {
+  for (m = 0; m < numneigh[i]; m++) 
+  {
     jd = neighbor[i][m];
     if(jd != j) eng1i += ebond1[element[j]][element[jd]]; 
   }  
 
-  if(estyle == 2) {
-    for(m = 0; m < numneigh2[i]; m++) {
+  if (estyle == 2) 
+  {
+    for(m = 0; m < numneigh2[i]; m++) 
+    {
       jd = neighbor2[i][m]; 
       eng1i += ebond2[element[j]][element[jd]]; 
     }
   }    
 
   //bond formed with i with after switch 
-  for(m = 0; m < numneigh[j]; m++) {
+  for (m = 0; m < numneigh[j]; m++) 
+  {
     jd = neighbor[j][m];
-    if(jd != i) eng1j += ebond1[element[i]][element[jd]];
+    if (jd != i) 
+      eng1j += ebond1[element[i]][element[jd]];
   }  
 
-  if(estyle == 2) {
-    for(m = 0; m < numneigh2[j]; m++) {
+  if (estyle == 2) 
+  {
+    for(m = 0; m < numneigh2[j]; m++) 
+    {
       jd = neighbor2[j][m]; 
       eng1j += ebond2[element[i]][element[jd]]; 
     }
   }
     
   //barrier = migbarrier + (eng_after - eng_before)/2.0; 
-  eng = mbarrier[element[j]] + (eng1i + eng1j - eng0i -eng0j)/2.0;
+  eng = mbarrier[element[j]] + (eng1i + eng1j - eng0i -eng0j) / 2.0;
 
   //add elastic contribution if applicable 
   if(elastic_flag) {
@@ -663,7 +675,7 @@ double AppRpv::site_SP_energy(int i, int j, int estyle)
 
 double AppRpv::site_propensity(int i)
 {
-  int j,iid,jid,m,md;
+  int j, iid, jid, m, md;
 
   // valid hop and recombination tabulated lists
   // propensity for each event is input by user
@@ -687,7 +699,7 @@ double AppRpv::site_propensity(int i)
         if(!(sink_flag && isink[i][jid -1] == 1)) {//production at sinks allowed   
           ebarrier = rbarrier[j];  
           if(elastic_flag) ebarrier += elastic_energy(i,jid) - elastic_energy(i,iid); 
-          hpropensity = rrate[j]*exp(-ebarrier/temperature);
+          hpropensity = rrate[j] * exp(-ebarrier/temperature);
           add_event(i,jid,2,j,hpropensity);
           prob_reaction += hpropensity;
         }
@@ -767,11 +779,11 @@ void AppRpv::site_event(int i, class RandomPark *random)
       lprd[2] = domain->zprd;
 
       for (k = 0; k < 3; k++) { //update 
-         dij[k] = xyz[j][k] - xyz[i][k];   
-         if(periodicity[k] && dij[k] >= lprd[k]/2.0) dij[k] -= lprd[k];
-         if(periodicity[k] && dij[k] <= -lprd[k]/2.0) dij[k] += lprd[k];
-         disp[k][i] += dij[k]; 
-         disp[k][j] -= dij[k]; 
+        dij[k] = xyz[j][k] - xyz[i][k];   
+        if (periodicity[k] && dij[k] >= lprd[k]/2.0) dij[k] -= lprd[k];
+        if (periodicity[k] && dij[k] <= -lprd[k]/2.0) dij[k] += lprd[k];
+        disp[k][i] += dij[k]; 
+        disp[k][j] -= dij[k]; 
       }
  
       for (k = 0; k < 3; k++) { //switch  
