@@ -392,8 +392,7 @@ void AppRpv::define_2NN()
   int i,j,k,jd,kd,n1nn,n2nn,njnn,ncandidate;
 
   memory->create(numneigh2,nlocal+nghost,"app, numneigh2");
-  memory->create(neighbor2,nlocal+nghost,MAX2NN, "app, numneigh2");
-
+  memory->create(neighbor2,nlocal+nghost,MAX2NN, "app, neighbor2");
   for (i = 0; i < nlocal+nghost; i++) {
     for (j = 0; j < 64; j++) candidate[j] = 0;  
     for (j = 0; j < 64; j++) frequency[j] = 0;  
@@ -909,6 +908,8 @@ void AppRpv::update_propensity(int i)
   int nsites = 0;
   int isite = i2site[i];
 
+  if (isite < 0) return;
+  
   esites[nsites++] = isite;
   echeck[isite] = 1;
 
@@ -937,8 +938,8 @@ void AppRpv::update_propensity(int i)
   solve->update(nsites,esites,propensity);
 
   // clear echeck array
-  for(m = 0; m < nsites; m++) echeck[esites[m]] = 0;
- 
+  for (m = 0; m < nsites; m++) 
+    echeck[esites[m]] = 0;
 }
 
 /* ----------------------------------------------------------------------
