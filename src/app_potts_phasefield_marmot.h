@@ -3,6 +3,11 @@
    http://www.cs.sandia.gov/~sjplimp/spparks.html
    Steve Plimpton, sjplimp@sandia.gov, Sandia National Laboratories
 
+   Class AppPottsPhaseField - added by Eric Homer, ehomer@sandia.gov
+   Mar 31, 2011 - Most recent version.  Most of this was copied from
+   AppPotts and AppPottsNeighOnly.
+
+
    Copyright (2008) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
    certain rights in this software.  This software is distributed under
@@ -12,30 +17,30 @@
 ------------------------------------------------------------------------- */
 
 #ifdef APP_CLASS
-
-AppStyle(potts/pfm,AppPottsPhaseField)
+AppStyle(potts/phasefield_marmot,AppPottsPhaseFieldMarmot)
 
 #else
 
-#ifndef SPK_APP_POTTS_PHASEFIELD_H
-#define SPK_APP_POTTS_PHASEFIELD_H
+#ifndef SPK_APP_POTTS_PHASEFIELD_MARMOT_H
+#define SPK_APP_POTTS_PHASEFIELD_MARMOT_H
 
 #include "app_potts_neighonly.h"
 
 namespace SPPARKS_NS {
 
-class AppPottsPhaseField : public AppPottsNeighOnly {
+class AppPottsPhaseFieldMarmot : public AppPottsNeighOnly {
  public:
 
-  AppPottsPhaseField(class SPPARKS *, int, char **);
-  ~AppPottsPhaseField();
+  AppPottsPhaseFieldMarmot(class SPPARKS *, int, char **);
+  ~AppPottsPhaseFieldMarmot();
 
+  void input_app(char *, int, char **);
   void init_app();
   void setup_end_app();
   void grow_app();
 
   void site_event_rejection(int,RandomPark *);
-  void app_update(double);
+  void user_update(double);
   double site_energy(int);
 
  protected:
@@ -76,8 +81,8 @@ class AppPottsPhaseField : public AppPottsNeighOnly {
 
   // methods unique to this class
   void init_values();
-  void site_event_finitedifference(int);
   double site_energy_no_gradient(int i);
+  double site_chem_pot(int i);
   void check_phasefield_stability(int,double);
 
   double site_grain_membership(int,int);
@@ -86,7 +91,7 @@ class AppPottsPhaseField : public AppPottsNeighOnly {
   void setup_connectivity_map();
   void print_connectivity_map();
 
-  void set_phasefield_resetfield();
+  void set_phasefield_resetfield(int, char **);
 };
 
 }
