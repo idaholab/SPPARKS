@@ -1,0 +1,5 @@
+src/Obj_*/*
+src/STUBS/libmpi.a
+src/STUBS/mpi.o
+src/spk_mac
+src/style_*.h
