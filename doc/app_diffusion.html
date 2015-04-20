@@ -1,0 +1,200 @@
+<HTML>
+<CENTER><A HREF = "http://spparks.sandia.gov">SPPARKS WWW Site</A> - <A HREF = "Manual.html">SPPARKS Documentation</A> - <A HREF = "Section_commands.html#comm">SPPARKS Commands</A> 
+</CENTER>
+
+
+
+
+
+
+<HR>
+
+<H3>app_style diffusion command 
+</H3>
+<P><B>Syntax:</B>
+</P>
+<PRE>app_style diffusion estyle dstyle args 
+</PRE>
+<UL><LI>diffusion = application style name 
+
+<LI>estyle = <I>off</I> or <I>linear</I> or <I>nonlinear</I> 
+
+<LI>dstyle = <I>hop</I> or <I>schwoebel</I> 
+
+<PRE>  <I>hop</I> args = none
+  <I>schwoebel</I> args = Nmax Nmin
+    Nmax = max # of neighbors the initial Schwoebel site can have
+    Nmin = min # of neighbors the final Schwoebel site can have 
+</PRE>
+
+</UL>
+<P><B>Examples:</B>
+</P>
+<PRE>app_style diffusion linear hop
+app_style diffusion nonlinear schwoebel 5 2 
+</PRE>
+<P><B>Description:</B>
+</P>
+<P>This is an on-lattice application which performs diffusive hops on a
+lattice whose sites are partially occupied and partially unoccupied
+(vacancies).  It can be used to model surface diffusion or bulk
+diffusion on 2d or 3d lattices.  It is equivalent to a 2-state Ising
+model performing Kawasaki dynamics where neighboring sites exchange
+their spins as the model evolves.  Each lattice site stores a value
+which is 1 for vacant or 2 for occupied or 3 for vacant and a
+non-deposition site.  See the <A HREF = "deposition.html">deposition</A> command for
+more details on the value = 3 sites.
+</P>
+<P>The <I>estyle</I> setting determines how energy is used in computing the
+probability of hop events, which is related to the Hamiltonian for the
+system.
+</P>
+<P>The Hamiltonian representing the energy of an occupied site I for the
+<I>off</I> style is 0, which simply means energy is not used in determining
+the hop probabilities.  Instead, see the <A HREF = "barrier.html">barrier</A>
+command.
+</P>
+<P>The Hamiltonian representing the energy of an occupied site I for the
+<I>linear</I> style is as follows:
+</P>
+<PRE>Hi = Sum_j delta_ij 
+</PRE>
+<P>where Sum_j is a sum over all the neighbor sites of site I and
+delta_ij is 0 if site J is occupied and 1 if site J is vacant.  The Hi
+for a vacant site is 0.
+</P>
+<P>The Hamiltonian representing the energy of an occupied site I for the
+<I>nonlinear</I> style is as follows:
+</P>
+<PRE>Hi = Eng(Sum_j delta_ij) 
+</PRE>
+<P>where Sum_j is the sum over all its neighbor sites and delta_ij now 1
+if site J is occupied and 0 otherwise.  Thus the summation computes
+the coordination number of site I.  Note that this definition of delta
+is the opposite of how it is defined for estyle <I>linear</I>.  The
+function Eng() is a tabulated function with values specified via the
+<A HREF = "ecoord.html">ecoord</A> command.  This effectively allows the energy to
+be a non-linear function of coordination number.  As before the Hi for
+a vacant site is 0.
+</P>
+<P>For all these <I>estyle</I> settings, the energy of the entire system is
+the sum of Hi over all sites.
+</P>
+<P>The <I>dstyle</I> setting determines what kind of diffusive hops are
+modeled.  For <I>hop</I>, only simple nearest-neighbor hops occur where an
+atom hops to a neighboring vacant site.  For <I>schwoebel</I>, Schwoebel
+hops can also occur, which are defined in the following way.  An atom
+I can hop to a 2nd neighbor vacant site K if there are two
+intermediate 1st neighbor sites J1 and J2, where J1 is vacant and J2
+is occupied, and J1 and J2 are neighbors of each other.  Additionaly
+the initial site I can have no more the <I>Nmax</I> occupied neighbors (its
+coordination number), and the destination site K can have no fewer
+than <I>Nmin</I> neighbors.
+</P>
+<HR>
+
+<P>The <A HREF = "deposition.html">deposition</A> command can be used with this
+application to add atoms to the system in competition with hop events.
+</P>
+<P>IMPORTANT NOTE: If you have a free surface you are depositing onto, it
+may also be possible for atoms to diffuse away from this surface,
+i.e. desorb into a vacuum.  This application does not do anything
+special with those atoms (e.g. remove them), so they may clump
+together or induce deposition to take place onto the clumps above the
+surface.  If you wish to prevent this you should insure that
+desorption is an energetically unfavorable event.
+</P>
+<P>The <A HREF = "barrier.html">barrier</A> command can be used with this application
+to add an energy barrier to the model for nearest-neighbor hop and
+Schwoebel hop events, as discussed below.
+</P>
+<P>The <A HREF = "ecoord.html">ecoord</A> command can be used with the <I>nonlinear</I>
+version of this application to set tabulated values for the
+Hamiltonian Eng() function as described above.
+</P>
+<P>Note that estyle <I>nonlinear</I> should give the same answer as estyle
+<I>linear</I> if the tabulated function specified by the
+<A HREF = "ecoord.html">ecoord</A> command is specified as E_0 = N, E_1 = N-1,
+... E_N-1 = 1, E_N = 0, where N = the number of neighbors of each
+lattice site, i.e. the maximum coordination number.  In this scenario,
+the energy is effectively a linear function of coordination number.
+</P>
+<HR>
+
+<P>This application performs Kawasaki dynamics, in that the "spins" on
+two neighboring sites are swapped, where spin can be thought of as a
+flag representing occupied or vacant.  Equivalently, an atom hops from
+an occupied site to a vacancy site.
+</P>
+<P>As explained on <A HREF = "app_style.html">this page</A>, this application can be
+evolved by either a kinetic Monte Carlo (KMC) or rejection KMC (rKMC)
+algorithm.  You must thus define a KMC solver or sweeping method to be
+used with the application via the <A HREF = "solve_style.html">solve_style</A> or
+<A HREF = "sweep.html">sweep</A> commands.  The <I>linear</I> estyle supports both KMC
+and rKMC options.  The other estyles only support KMC options.  If the
+<A HREF = "deposition.html">deposition</A> command is used, then only KMC options
+are supported.
+</P>
+<P>For solution by a KMC algorithm, the possible events an occupied site
+can perform are swaps with vacant neighbor sites.  The probability of
+each such event depends on several variables: the <I>estyle</I> setting,
+whether the <A HREF = "barrier.html">barrier</A> command is used, whether the hop is
+downhill or uphill in energy, and whether the
+<A HREF = "temperature.html">temperature</A> is 0.0 or finite.  The following table
+gives the hop probability for each possible combination of these
+variables.
+</P>
+<DIV ALIGN=center><TABLE  BORDER=1 >
+<TR ALIGN="center"><TD >Energy </TD><TD > Barrier </TD><TD > Direction </TD><TD > Temperature </TD><TD > Probability</TD></TR>
+<TR ALIGN="center"><TD >no  </TD><TD >	   no  </TD><TD >	N/A  </TD><TD >	   either </TD><TD >     1</TD></TR>
+<TR ALIGN="center"><TD >no  </TD><TD >	   yes </TD><TD >	N/A  </TD><TD >	   0.0	  </TD><TD >     0</TD></TR>
+<TR ALIGN="center"><TD >no  </TD><TD >	   yes </TD><TD >	N/A  </TD><TD >	   finite </TD><TD >     exp(-Q/kT)</TD></TR>
+<TR ALIGN="center"><TD >yes </TD><TD >	   no  </TD><TD >	down </TD><TD >	   either </TD><TD >     1</TD></TR>
+<TR ALIGN="center"><TD >yes </TD><TD >	   no  </TD><TD >	up   </TD><TD >	   0.0	  </TD><TD >     0</TD></TR>
+<TR ALIGN="center"><TD >yes </TD><TD >	   no  </TD><TD >	up   </TD><TD >	   finite </TD><TD >     exp(-dE/kT)</TD></TR>
+<TR ALIGN="center"><TD >yes </TD><TD >	   yes </TD><TD >	down </TD><TD >	   0.0	  </TD><TD >     0</TD></TR>
+<TR ALIGN="center"><TD >yes </TD><TD >	   yes </TD><TD >	down </TD><TD >	   finite </TD><TD >     exp(-Q/kT)</TD></TR>
+<TR ALIGN="center"><TD >yes </TD><TD >	   yes </TD><TD >	up   </TD><TD >	   0.0	  </TD><TD >     0</TD></TR>
+<TR ALIGN="center"><TD >yes </TD><TD >	   yes </TD><TD >	up   </TD><TD >	   finite </TD><TD >     exp((-dE-Q)/kT) 
+</TD></TR></TABLE></DIV>
+
+<P>If <I>estyle</I> is set to <I>off</I>, then energy is "no" in the table.  Any
+other <I>estyle</I> setting is energy = "yes".  Barrier is "no" in the
+table if the "barrier" command is not used, else it is "yes" in the
+table.  The direction of energy change (downhill versus uphill) is
+only relevant if energy is "yes", else it is N/A.  The "either" entry
+for temperature means 0.0 or finite.
+</P>
+<P>The value dE = Efinal - Einitial refers to the energy change in the
+system due to the hop.  For estyle <I>linear</I> this can be computed from
+just the sites I,J.  For estyle <I>nonlinear</I> the energy of the
+neighbors of both sites I,J must also be computed.
+</P>
+<P>For solution by a Metropolis algorithm, the hop event is performed or
+not if the probability in the table is 1 or 0.  For intermediate
+values, a uniform random number R between 0 and 1 is generated and the
+hop event is accepted if R < probability in the table.
+</P>
+<HR>
+
+<P>The following additional commands are defined by this application.
+The ecoord command can only be used with the <I>nonlinear</I> energy style.
+</P>
+<DIV ALIGN=center><TABLE  BORDER=1 >
+<TR><TD ><A HREF = "barrier.html">barrier</A> </TD><TD > define energy barriers for hop events</TD></TR>
+<TR><TD ><A HREF = "deposition.html">deposition</A> </TD><TD > define deposition events</TD></TR>
+<TR><TD ><A HREF = "ecoord.html">ecoord</A> </TD><TD > specify site energy as a function of coordination number</TD></TR>
+<TR><TD ><A HREF = "temperature.html">temperature</A> </TD><TD > set Monte Carlo temperature 
+</TD></TR></TABLE></DIV>
+
+<HR>
+
+<P><B>Restrictions:</B> none
+</P>
+<P><B>Related commands:</B>
+</P>
+<P><A HREF = "app_ising.html">app_style ising</A>
+</P>
+<P><B>Default:</B> none
+</P>
+</HTML>

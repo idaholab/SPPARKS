@@ -1,0 +1,28 @@
+# SPPARKS relaxation test
+
+seed		 56789
+
+app_style	 relax 0.5 
+
+dimension	 2
+lattice		 sq/8n 1.0
+region		 box block 0 32 0 32 -0.5 0.5
+create_box	 box
+create_sites	 box
+
+set		 site range 1 1
+
+pair_style	 lj/cut 1 2.5
+pair_coeff	 1 1 1.0 1.0
+
+sweep		 random
+sector		 yes
+
+temperature	 1.0
+
+stats            100.0
+dump             1 text 100.0 dump.relax
+
+diag_style	 energy
+
+run              5000.0

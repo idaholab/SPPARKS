@@ -1,0 +1,65 @@
+"SPPARKS WWW Site"_sws - "SPPARKS Documentation"_sd - "SPPARKS Commands"_sc :c
+
+:link(sws,http://spparks.sandia.gov)
+:link(sd,Manual.html)
+:link(sc,Section_commands.html#comm)
+
+:line
+
+pair_style lj command :h3
+
+[Syntax:]
+
+pair_style lj Ntypes cutoff :pre
+
+lj = style name of this pair style
+Ntypes = # of particle types
+cutoff = global cutoff for pairwise interactions (distance units) :ul
+
+[Examples:]
+
+pair_style lj 1 2.5
+pair_style lj 3 3.0 :pre
+
+[Description:]
+
+The {lj/cut} style computes the standard 12/6 Lennard-Jones potential,
+given by
+
+:c,image(Eqs/pair_lj.jpg)
+
+Rc is the cutoff.
+
+The following coefficients must be defined for each pair of particle
+types via the "pair_coeff"_pair_coeff.html command, or by mixing as
+described below:
+
+epsilon (energy units)
+sigma (distance units)
+cutoff (distance units) :ul
+
+Note that sigma is defined in the LJ formula as the zero-crossing
+distance for the potential, not as the energy minimum at 2^(1/6)
+sigma.
+
+The last coefficients is optional.  If not specified, the global LJ
+cutoff specified in the pair_style command is used.
+
+:line
+
+[Mixing info]:
+
+For atom type pairs I,J and I != J, the epsilon and sigma coefficients
+and cutoff distance for all of the lj/cut pair styles can be mixed.
+The style of mixing is {geometric}, which means that
+
+epsilon_ij = sqrt(epsilon_i * epsilon_j)
+sigma_ij = sqrt(sigma_i * sigma_j) :pre
+
+:line
+
+[Restrictions:] none
+
+[Related commands:] none
+
+[Default:] none

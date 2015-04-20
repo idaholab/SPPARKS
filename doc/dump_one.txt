@@ -1,0 +1,41 @@
+"SPPARKS WWW Site"_sws - "SPPARKS Documentation"_sd - "SPPARKS Commands"_sc :c
+
+:link(sws,http://spparks.sandia.gov)
+:link(sd,Manual.html)
+:link(sc,Section_commands.html#comm)
+
+:line
+
+dump_one command :h3
+
+[Syntax:]
+
+dump_one dump-ID :pre
+
+dump-ID = ID of previously defined dump :ul
+
+[Examples:]
+
+dump_one mine
+dump_one 2 :pre
+
+[Description:]
+
+Dump the current state of the lattice to the dump file defined by the
+"dump"_dump.html command with this {dump-ID}.  This can be useful
+before or after a run, if the "dump"_dump.html command itself did not
+produce a snapshot at the desired time or state.
+
+The information dumped is determined by the "dump"_dump.html command
+which must have been previously specified to use the dump_one command.
+
+[Restrictions:]
+
+This command cannot be used to trigger the very first snapshot written
+to the file specified with the "dump"_dump.html command.
+
+[Related commands:]
+
+"dump"_dump.html
+
+[Default:] none

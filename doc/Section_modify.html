@@ -1,0 +1,212 @@
+<HTML>
+<CENTER><A HREF = "Section_tools.html">Previous Section</A> - <A HREF = "http://spparks.sandia.gov">SPPARKS WWW Site</A> -
+<A HREF = "Manual.html">SPPARKS Documentation</A> - <A HREF = "Section_commands.html#comm">SPPARKS Commands</A> - <A HREF = "Section_errors.html">Next
+Section</A> 
+</CENTER>
+
+
+
+
+
+
+<HR>
+
+<H3>8. Modifying & extending SPPARKS 
+</H3>
+<P>SPPARKS is designed in a modular fashion so as to be easy to modify and
+extend with new functionality.
+</P>
+<P>In this section, changes and additions users can make are listed along
+with minimal instructions.  If you add a new feature to SPPARKS and
+think it will be of interest to general users, we encourage you to
+submit it to the developers for inclusion in the released version of
+SPPARKS.
+</P>
+<P>The best way to add a new feature is to find a similar feature in
+SPPARKS and look at the corresponding source and header files to figure
+out what it does.  You will need some knowledge of C++ to be able to
+understand the hi-level structure of SPPARKS and its class
+organization, but functions (class methods) that do actual
+computations are written in vanilla C-style code and operate on simple
+C-style data structures (vectors and arrays).
+</P>
+<P>Most of the new features described in this section require you to
+write a new C++ derived class.  Creating a new class requires 2 files,
+a source code file (*.cpp) and a header file (*.h).  The derived class
+must provide certain methods to work as a new option.  Depending on
+how different your new feature is compared to existing features, you
+can either derive from the base class itself, or from a derived class
+that already exists.  Enabling SPPARKS to invoke the new class is as
+simple as adding two lines to the style_user.h file, in the same
+syntax as other SPPARKS classes are specified in the style.h file.
+</P>
+<P>The advantage of C++ and its object-orientation is that all the code
+and variables needed to define the new feature are in the 2 files you
+write, and thus shouldn't make the rest of SPPARKS more complex or
+cause side-effect bugs.
+</P>
+<P>Here is a concrete example.  Suppose you write 2 files app_foo.cpp and
+app_foo.h that define a new class AppFoo that implements a Monte Carlo
+model described in the classic 1997 <A HREF = "#Foo">paper</A> by Foo, et al.  If
+you wish to invoke that application in a SPPARKS input script with a
+command like
+</P>
+<PRE>app_style foo 0.1 3.5 
+</PRE>
+<P>you put your 2 files in the SPPARKS src directory and re-make the
+code.  The app_foo.h file should have these lines at the top
+</P>
+<PRE>#ifdef APP_CLASS
+AppStyle(foo,AppFoo)
+#else 
+</PRE>
+<P>where "foo" is the style keyword to be used in the app_style command,
+and AppFoo is the class name in your C++ files.
+</P>
+<P>When you re-make SPPARKS, your new application becomes part of the
+executable and can be invoked with a app_style command like the
+example above.  Arguments like 0.1 and 3.5 can be defined and
+processed by your new class.
+</P>
+<P>Here is a list of the new features that can be added in this way.
+</P>
+<UL><LI><A HREF = "#app">Application styles</A>
+<LI><A HREF = "#diag">Diagnostic styles</A>
+<LI><A HREF = "#command">Input script commands</A>
+<LI><A HREF = "#solve">Solve styles</A> 
+</UL>
+<P>As illustrated by the application example, these options are referred
+to in the SPPARKS documentation as the "style" of a particular
+command.
+</P>
+<P>The instructions below give the header file for the base class that
+these styles are derived from.  Public variables in that file are ones
+used and set by the derived classes which are also used by the base
+class.  Sometimes they are also used by the rest of SPPARKS.  Virtual
+functions in the base class header file which are set = 0 are ones you
+must define in your new derived class to give it the functionality
+SPPARKS expects.  Virtual functions that are not set to 0 are functions
+you can optionally define.
+</P>
+<HR>
+
+<HR>
+
+<A NAME = "app"></A><H4>Application styles 
+</H4>
+<P>In SPPARKS, applications are what define the simulation model that is
+evolved via Monte Carlo algorithms.  A new model typically requires
+adding a new application to the code.  Read the doc page for the
+<A HREF = "app_style.html">app_style</A> command to understand the distinction
+between on-lattice and off-lattice applications.  A new off-lattice
+application can be anything you wish.  On-lattice applications are
+derive from the AppLattice class.
+</P>
+<P>For on-lattice and off-lattice applications, here is a brief
+description of methods you define in your new derived class.  Some of
+them are required; some are optional.  See app.h for details.
+</P>
+<DIV ALIGN=center><TABLE  BORDER=1 >
+<TR><TD >input_app</TD><TD > additional commands the application defines</TD></TR>
+<TR><TD >grow_app</TD><TD > set pointers to per-site arrays used by the application</TD></TR>
+<TR><TD >init_app</TD><TD > initialize the application before a run</TD></TR>
+<TR><TD >site_energy</TD><TD > compute energy of a site</TD></TR>
+<TR><TD >site_event_rejection</TD><TD > peform an event with null-bin rejection (for rKMC)</TD></TR>
+<TR><TD >site_propensity</TD><TD > compute propensity of all events on a site (for KMC)</TD></TR>
+<TR><TD >site_event</TD><TD > perform an event (for KMC) 
+</TD></TR></TABLE></DIV>
+
+<P>Note that two of the methods are required if you want your application
+to perform kinetic Monte Carlo (KMC) with a <A HREF = "solve_style.html">solver</A>.
+One of the methods is required if you want your application to perform
+rejection KMC (rKMC) with a <A HREF = "sweep.html">sweep method</A>.
+</P>
+<P>The constructor for your application class also needs to define, to
+insure proper operation with the "KMC solvers'_solve.html and
+rejection KMC <A HREF = "sweep.html">sweep methods</A>.  These are the flags, all of
+which have default values set in app_lattice.cpp:
+</P>
+<DIV ALIGN=center><TABLE  BORDER=1 >
+<TR><TD >ninteger </TD><TD > how many integer values are defined per site</TD></TR>
+<TR><TD >ndouble</TD><TD > how many floating point values are defined per site</TD></TR>
+<TR><TD >delpropensity</TD><TD > how many neighbors away values are needed to compute propensity</TD></TR>
+<TR><TD >delevent</TD><TD > how many neighbors away may the value can be changed by an event</TD></TR>
+<TR><TD >allow_kmc</TD><TD > 1 if methods are provided for KMC</TD></TR>
+<TR><TD >allow_rejection</TD><TD > 1 if methods are provided for rejection KMC</TD></TR>
+<TR><TD >allow_masking</TD><TD > 1 if rKMC method supports masking</TD></TR>
+<TR><TD >numrandom</TD><TD > # of random numbers used by the site_event_rejection method 
+</TD></TR></TABLE></DIV>
+
+<A NAME = "diag"></A><H4>Diagnostic styles 
+</H4>
+<P>Diagnostic classes compute some form of analysis periodically during a
+simulation.  See the <A HREF = "diag_style.html">diag_style</A> command for details.
+</P>
+<P>To add a new diagnostic, here is a brief description of methods you
+define in your new derived class.  Some of them are required; some are
+optional.  See diag.h for details.
+</P>
+<DIV ALIGN=center><TABLE  BORDER=1 >
+<TR><TD >init</TD><TD > setup the computation</TD></TR>
+<TR><TD >compute</TD><TD > perform the analysis computation</TD></TR>
+<TR><TD >stats_header</TD><TD > what to add to statistics header for this diagnostic</TD></TR>
+<TR><TD >stats</TD><TD > fields added to statistics by this diagnostic 
+</TD></TR></TABLE></DIV>
+
+<HR>
+
+<A NAME = "command"></A><H4>Input script commands 
+</H4>
+<P>New commands can be added to SPPARKS input scripts by adding new
+classes that have a "command" method and are listed in the Command
+sections of style_user.h (or style.h).  For example, the shell
+commands (cd, mkdir, rm, etc) are implemented in this fashion.  When
+such a command is encountered in the SPPARKS input script, SPPARKS
+simply creates a class with the corresponding name, invokes the
+"command" method of the class, and passes it the arguments from the
+input script.  The command method can perform whatever operations it
+wishes on SPPARKS data structures.
+</P>
+<P>The single method your new class must define is as follows:
+</P>
+<DIV ALIGN=center><TABLE  BORDER=1 >
+<TR><TD >command</TD><TD > operations performed by the new command 
+</TD></TR></TABLE></DIV>
+
+<P>Of course, the new class can define other methods and variables as
+needed.
+</P>
+<HR>
+
+<A NAME = "solve"></A><H4>Solve styles 
+</H4>
+<P>In SPPARKS, a solver performs the kinetic Monte Carlo (KMC) operation
+of selecting an event from a list of events and associated
+probabilities.  See the <A HREF = "solve_style.html">solve_style</A> command for
+details.
+</P>
+<P>To add a new KMC solver, here is a brief description of methods you
+define in your new derived class.  Some of them are required; some are
+optional.  See diag.h for details.
+</P>
+<P>Here is a brief description of methods you define in your new derived
+class.  All of them are required.  See solve.h for details.
+</P>
+<DIV ALIGN=center><TABLE  BORDER=1 >
+<TR><TD >clone</TD><TD > make a copy of the solver for use within a sector of the domain</TD></TR>
+<TR><TD >init</TD><TD > initialize the solver</TD></TR>
+<TR><TD >update</TD><TD > update one or more event probabilities</TD></TR>
+<TR><TD >resize</TD><TD > change the number of events in the list</TD></TR>
+<TR><TD >event</TD><TD > select an event and associated timestep 
+</TD></TR></TABLE></DIV>
+
+<HR>
+
+<HR>
+
+<A NAME = "Foo"></A>
+
+<P><B>(Foo)</B> Foo, Morefoo, and Maxfoo, J of Classic Monte Carlo
+Applications, 75, 345 (1997).
+</P>
+</HTML>

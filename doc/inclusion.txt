@@ -1,0 +1,42 @@
+"SPPARKS WWW Site"_sws - "SPPARKS Documentation"_sd - "SPPARKS Commands"_sc :c
+
+:link(sws,http://spparks.sandia.gov)
+:link(sd,Manual.html)
+:link(sc,Section_commands.html#comm)
+
+:line
+
+inclusion command :h3
+
+[Syntax:]
+
+inclusion x y z r :pre
+
+x,y,z = position of center of protein inclusion
+r = radius of the protein :ul
+
+[Examples:]
+
+inclusion 10 12 0.0 2.0
+inclusion 10 12 5.4 5.0 :pre
+
+[Description:]
+
+This command defines protein sites on a lattice and can only be used
+by "app_style membrane"_app_membrane.html applications.
+
+Think of the protein as a sphere (or circle) centered at {x,y,z} and
+with a radius of {r}.  All lattice sites within the sphere (or circle)
+will be flagged as protein (as opposed to lipid or solvent).  For
+lattices with a 2d geometry, the z value should be speficied as 0.0.
+
+[Restrictions:] none
+
+This command can only be used as part of the "app_style
+pore"_app_pore.html applications.
+
+[Related commands:]
+
+"app_style membrane"_app_membrane.html
+
+[Default:] none

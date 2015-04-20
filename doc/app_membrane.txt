@@ -1,0 +1,92 @@
+"SPPARKS WWW Site"_sws - "SPPARKS Documentation"_sd - "SPPARKS Commands"_sc :c
+
+:link(sws,http://spparks.sandia.gov)
+:link(sd,Manual.html)
+:link(sc,Section_commands.html#comm)
+
+:line
+
+app_style membrane command :h3
+
+[Syntax:]
+
+app_style membrane w01 w11 mu :pre
+
+membrane = style name of this application
+w01 = sovent-protein interaction energy (typically 1.25)
+w11 = sovent-solvent interaction energy (typically 1.0)
+mu = chemical potential to insert a solvent (typically -2.0) :ul
+
+[Examples:]
+
+app_style membrane 1.25 1.0 -3.0 :pre
+
+[Description:]
+
+This is an on-lattice application which evolves a membrane model,
+where each lattice site is in one of 3 states: lipid, water, or
+protein.  Sites flip their state as the model evolves.  See the paper
+of "(Sarkisov)"_#Sarkisov for a description of the model and its
+applications to porous media.  Here it is used to model the state of a
+lipid membrane around embedded proteins, such as one enclosing a
+biological cell.
+
+In the model, protein sites are defined by the
+"inclusion"_inclusion.html command and never change.  The remaining
+sites are initially lipid and can flip between solvent and lipid as
+the model evolves.  Typically, water will coat the surface of the
+proteins and create a pore in between multiple proteins if they are
+close enough together.
+
+The Hamiltonian represeting the energy of site I is as follows:
+
+H = - mu x_i - Sum_j (w11 a_ij + w01 b_ij) :pre
+
+where Sum_j is a sum over all the neighbor sites of site I, x_i = 1 if
+site I is solvent and 0 otherwise, a_ij = 1 if both the I,J sites are
+solvent and 0 otherwise, b_ij = 1 if one of the I,J sites is solvent
+and the other is protein and 0 otherwise.  Mu and w11 and w01 are user
+inputs.  As discussed in the paper, this is essentially a lattice gas
+grand-canonical Monte Carlo model, which is isomorphic to an Ising
+model.  The mu term is a penalty for inserting solvent which prevents
+the system from becoming all solvent, which the 2nd term would prefer.
+
+As explained on "this page"_app_style.html, this application can be
+evolved by either a kinetic Monte Carlo (KMC) or rejection KMC (rKMC)
+algorithm.  You must thus define a KMC solver or sweeping method to be
+used with the application via the "solve_style"_solve_style.html or
+"sweep"_sweep.html commands.
+
+For solution by a KMC algorithm, a site event is a spin flip from a
+lipid to fluid state or vice versa.  The probability of the event is
+min\[1,exp(-dE/kT)\], where dE = Efinal - Einitial using the
+Hamiltonian defined above for the energy of the site, and T is the
+temperature of the system defined by the
+"temperature"_temperature.html command (which includes the Boltzmann
+constant k implicitly).
+
+For solution by a Metropolis algorithm, the site is set randomly to
+fluid or lipid, unless it is a protein site in which case it is
+skipped altogether.  The energy change dE = Efinal - Einitial is
+calculated, as is a uniform random number R between 0 and 1.  The new
+state is accepted if R < min\[1,exp(-dE/kT)\], else it is rejected.
+
+:line
+
+The following additional commands are defined by these applications:
+
+"inclusion"_inclusion.html : specify which sites are proteins
+"temperature"_temperature.html : set Monte Carlo temperature :tb(s=:)
+
+:line
+
+[Restrictions:] none
+
+[Related commands:] none
+
+[Default:] none
+
+:line
+
+:link(Sarkisov)
+[(Sarkisov)] Sarkisov and Monson, Phys Rev E, 65, 011202 (2001).

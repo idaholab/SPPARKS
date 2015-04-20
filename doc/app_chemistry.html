@@ -1,0 +1,66 @@
+<HTML>
+<CENTER><A HREF = "http://spparks.sandia.gov">SPPARKS WWW Site</A> - <A HREF = "Manual.html">SPPARKS Documentation</A> - <A HREF = "Section_commands.html#comm">SPPARKS Commands</A> 
+</CENTER>
+
+
+
+
+
+
+<HR>
+
+<H3>app_style chemistry command 
+</H3>
+<P><B>Syntax:</B>
+</P>
+<PRE>app_style chemistry 
+</PRE>
+<UL><LI>chemistry = application style name 
+</UL>
+<P><B>Examples:</B>
+</P>
+<PRE>app_style chemistry 
+</PRE>
+<P><B>Description:</B>
+</P>
+<P>This is a general application which evolves a set of coupled chemical
+reactions stochastically, producing a time trace of species
+concentrations.  Chemical species are treated as counts of individual
+molecules reacting within a reaction volume in a well-mixed fashion.
+Individual reactions are chosen via the direct method variant of the
+Stochastic Simulation Algorithm (SSA) of <A HREF = "#Gillespie">(Gillespie)</A>.
+</P>
+<P>A prototypical example is to use this model to simulate the execution
+of a protein signaling network in a biological cell.
+</P>
+<P>This application can only be evolved using a kinetic Monte Carlo (KMC)
+algorithm.  You must thus define a KMC solver to be used with the
+application via the <A HREF = "solve_style.html">solve_style</A> command
+</P>
+<HR>
+
+<P>The following additional commands are defined by this application:
+</P>
+<DIV ALIGN=center><TABLE  BORDER=1 >
+<TR><TD ><A HREF = "add_reaction.html">add_reaction</A> </TD><TD > define a chemical reaction</TD></TR>
+<TR><TD ><A HREF = "add_species.html">add_species</A> </TD><TD > define a chemical species</TD></TR>
+<TR><TD ><A HREF = "count.html">count</A> </TD><TD > specify molecular count of a species</TD></TR>
+<TR><TD ><A HREF = "volume.html">volume</A> </TD><TD > specify volume of the chemical reactor 
+</TD></TR></TABLE></DIV>
+
+<HR>
+
+<P><B>Restrictions:</B> none
+</P>
+<P><B>Related commands:</B> none
+</P>
+<P><B>Default:</B> none
+</P>
+<HR>
+
+<A NAME = "Gillepsie"></A>
+
+<P><B>(Gillepsie)</B> Gillespie, J Chem Phys, 22, 403-434 (1976);
+Gillespie, J Phys Chem, 81, 2340-2361 (1977).
+</P>
+</HTML>

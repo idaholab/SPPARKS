@@ -1,0 +1,107 @@
+<HTML>
+<CENTER><A HREF = "http://spparks.sandia.gov">SPPARKS WWW Site</A> - <A HREF = "Manual.html">SPPARKS Documentation</A> - <A HREF = "Section_commands.html#comm">SPPARKS Commands</A> 
+</CENTER>
+
+
+
+
+
+
+<HR>
+
+<H3>app_style potts command 
+</H3>
+<H3>app_style potts/neigh command 
+</H3>
+<H3>app_style potts/neighonly command 
+</H3>
+<P><B>Syntax:</B>
+</P>
+<PRE>app_style style Q 
+</PRE>
+<UL><LI>style = <I>potts</I> or <I>potts/neigh</I> or <I>potts/neighonly</I>
+<LI>Q = number of spin states 
+</UL>
+<P><B>Examples:</B>
+</P>
+<PRE>app_style potts 100
+app_style potts/neigh 20 
+</PRE>
+<P><B>Description:</B>
+</P>
+<P>These are on-lattice applications which evolve a Q-state Ising model
+or Potts model, where each lattice site has a spin value from 1 to Q.
+Sites flip their spin as the model evolves.
+</P>
+<P>The Hamiltonian representing the energy of site I is as follows:
+</P>
+<PRE>Hi = Sum_j delta_ij 
+</PRE>
+<P>where Sum_j is a sum over all the neighbor sites of site I and
+delta_ij is 0 if the spin of sites I and J are the same and 1 if they
+are different.  The energy of the entire system is the sum of Hi over
+all sites.
+</P>
+<P>These applications perform Glauber dynamics, meaning the spin is
+flipped on a single site.  See <A HREF = "app_diffusion.html">app_style
+diffusion</A> for an Ising model which performs
+Kawasaki dynamics, meaning the spins on two neighboring sites are
+swapped.
+</P>
+<P>As explained on <A HREF = "app_style.html">this page</A>, these applications can be
+evolved by either a kinetic Monte Carlo (KMC) or rejection KMC (rKMC)
+algorithm.  You must thus define a KMC solver or sweeping method to be
+used with the application via the <A HREF = "solve_style.html">solve_style</A> or
+<A HREF = "sweep.html">sweep</A> commands.
+</P>
+<P>For solution by a KMC algorithm, a site event is a spin flip and its
+probability is min[1,exp(-dE/kT)], where dE = Efinal - Einitial
+using the Hamiltonian defined above for the energy of the site, and T
+is the temperature of the system defined by the
+<A HREF = "temperature.html">temperature</A> command (which includes the Boltzmann
+constant k implicitly).  The KMC algorithm does not allow spin flips
+known as "wild" flips, even at finite temperature.  These are flips to
+values that are not equal to any neighbor site value.
+</P>
+<P>For solution by a rKMC algorithm, the various styles use different
+rejection-based algorithms.  For the <I>potts</I> style, a random spin from
+1 to Q is chosen.  For the <I>potts/neigh</I> style, a spin is chosen
+randomly from the values held by neighbor sites and a null-bin of a
+size which extends the possible events up to the maximum number of
+neighbors.  For example, imagine a site has 12 neighbors and the 12
+sites have 4 different spin values.  Then each of the 4 neighbor spin
+values will be chosen with 1/12 probability and the null bin will be
+chosen with 8/12 probability.  For the <I>potts/neighonly</I> style, the
+null bin is discarded, so in this case each of the 4 spin values will
+be chosen with 1/4 probability.  In all the cases, dE = Efinal -
+Einitial is calculated, as is a uniform random number R between 0 and
+1.  The new state is accepted if R < min[1,exp(-dE/kT)], else it is
+rejected.
+</P>
+<P>The rKMC algorithm for the <I>potts</I> style does allow spin flips known
+as "wild" flips.  These are flips to values that are not equal to any
+neighbor site value.  At temperature 0.0 these are effectively
+disallowed, since they will increase the energy of the system (except
+in the uninteresting case when the site already has a spin value not
+equal to any neighbor values), but at finite temperature they will
+have a non-zero probability of occurring.
+</P>
+<HR>
+
+<P>The following additional commands are defined by these applications:
+</P>
+<DIV ALIGN=center><TABLE  BORDER=1 >
+<TR><TD ><A HREF = "temperature.html">temperature</A> </TD><TD > set Monte Carlo temperature 
+</TD></TR></TABLE></DIV>
+
+<HR>
+
+<P><B>Restrictions:</B> none
+</P>
+<P><B>Related commands:</B>
+</P>
+<P><A HREF = "app_ising.html">app_style ising</A>
+</P>
+<P><B>Default:</B> none
+</P>
+</HTML>

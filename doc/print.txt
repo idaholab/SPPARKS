@@ -1,0 +1,46 @@
+"SPPARKS WWW Site"_sws - "SPPARKS Documentation"_sd - "SPPARKS Commands"_sc :c
+
+:link(sws,http://spparks.sandia.gov)
+:link(sd,Manual.html)
+:link(sc,Section_commands.html#comm)
+
+:line
+
+print command :h3
+
+[Syntax:]
+
+print string :pre
+
+string = text string to print. may contain variables :ul
+
+[Examples:]
+
+print "Done with equilibration"
+print "The system temperature is now $t" :pre
+
+[Description:]
+
+Print a text string to the screen and logfile.  The text string must
+be a single argument, so it should be enclosed in double quotes if it
+is more than one word.  If variables are included in the string, they
+will be evaluated and their current values printed.
+
+If you want the print command to be executed multiple times (with
+changing variable values) then the print command could appear in a
+section of the input script that is looped over (see the
+"jump"_jump.html and "next"_next.html commands).
+
+See the "variable"_variable.html command for a description of {equal}
+style variables which are typically the most useful ones to use with
+the print command.  Equal-style variables can calculate formulas
+involving mathematical operations, or references to other
+"variables"_variable.html.
+
+[Restrictions:] none
+
+[Related commands:]
+
+"variable"_variable.html
+
+[Default:] none

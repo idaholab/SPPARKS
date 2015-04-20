@@ -1,0 +1,41 @@
+<HTML>
+<CENTER><A HREF = "http://spparks.sandia.gov">SPPARKS WWW Site</A> - <A HREF = "Manual.html">SPPARKS Documentation</A> - <A HREF = "Section_commands.html#comm">SPPARKS Commands</A> 
+</CENTER>
+
+
+
+
+
+
+<HR>
+
+<H3>diag_style energy command 
+</H3>
+<P><B>Syntax:</B>
+</P>
+<PRE>diag_style energy keyword value keyword value ... 
+</PRE>
+<UL><LI>energy = style name of this diagnostic
+<LI>see the <A HREF = "diag_style.html">diag_style</A> command for additional keywords that can be appended to a diagnostic command 
+</UL>
+<P><B>Examples:</B>
+</P>
+<PRE>diag_style energy 
+</PRE>
+<P><B>Description:</B>
+</P>
+<P>The energy diagnostic computes the total energy of all lattice sites
+in the system.  The energy is printed as stats output via the
+<A HREF = "stats.html">stats</A> command.
+</P>
+<P><B>Restrictions:</B>
+</P>
+<P>This diagnostic can only be used for on-lattice applications.
+</P>
+<P><B>Related commands:</B>
+</P>
+<P><A HREF = "diag_style.html">diag_style</A>, <A HREF = "stats.html">stats</A>
+</P>
+<P><B>Default:</B> none
+</P>
+</HTML>

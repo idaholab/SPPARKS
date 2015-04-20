@@ -1,0 +1,46 @@
+<HTML>
+<CENTER><A HREF = "http://spparks.sandia.gov">SPPARKS WWW Site</A> - <A HREF = "Manual.html">SPPARKS Documentation</A> - <A HREF = "Section_commands.html#comm">SPPARKS Commands</A> 
+</CENTER>
+
+
+
+
+
+
+<HR>
+
+<H3>dump_one command 
+</H3>
+<P><B>Syntax:</B>
+</P>
+<PRE>dump_one dump-ID 
+</PRE>
+<UL><LI>dump-ID = ID of previously defined dump 
+</UL>
+<P><B>Examples:</B>
+</P>
+<PRE>dump_one mine
+dump_one 2 
+</PRE>
+<P><B>Description:</B>
+</P>
+<P>Dump the current state of the lattice to the dump file defined by the
+<A HREF = "dump.html">dump</A> command with this <I>dump-ID</I>.  This can be useful
+before or after a run, if the <A HREF = "dump.html">dump</A> command itself did not
+produce a snapshot at the desired time or state.
+</P>
+<P>The information dumped is determined by the <A HREF = "dump.html">dump</A> command
+which must have been previously specified to use the dump_one command.
+</P>
+<P><B>Restrictions:</B>
+</P>
+<P>This command cannot be used to trigger the very first snapshot written
+to the file specified with the <A HREF = "dump.html">dump</A> command.
+</P>
+<P><B>Related commands:</B>
+</P>
+<P><A HREF = "dump.html">dump</A>
+</P>
+<P><B>Default:</B> none
+</P>
+</HTML>

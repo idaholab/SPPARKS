@@ -1,0 +1,153 @@
+"SPPARKS WWW Site"_sws - "SPPARKS Documentation"_sd - "SPPARKS Commands"_sc :c
+
+:link(sws,http://spparks.sandia.gov)
+:link(sd,Manual.html)
+:link(sc,Section_commands.html#comm)
+
+:line
+
+dump command :h3
+"dump image"_dump_image.html command :h3
+
+[Syntax:]
+
+dump dump-ID style delta filename field1 field2 ... :pre
+
+dump-ID = user-assigned name for the dump :ulb,l
+style = {text} or {image} :l
+delta = time increment between dumps (seconds) :l
+filename = name of file to dump snapshots to :l
+fields = list of arguments for a particular style :l
+  {image} fields = discussed on "dump image"_dump_image.html doc page
+  {text} fields = {id} or {site} or {x} or {y} or {z} or
+                  {energy} or {propensity} or {iN} or {dN} :pre
+:ule
+
+[Examples:]
+
+dump 1 text 0.25 tmp.dump
+dump 1 text 1.0 my.dump id site x y z
+dump mydump text 5.0 snap.ising id site energy i1 :pre
+
+[Description:]
+
+The {text} style dumps a snapshot of site values to one or more files
+at time intervals of {delta} during a simulation.  The {image} style
+creates a JPG or PPM image file of the site configuration every at
+time intervals of {delta}, as discussed on the "dump
+image"_dump_image.html doc page.  The remainder of this page
+refers to the {text} style.
+
+As described below, the filename determines the kind of output (text
+or binary or gzipped, one big file or one per timestep, one big file
+or one per processor).  The quantities printed are obtained from the
+application.  Only "on-lattice and off-lattice
+applications"_app_style.html support dumps since they are spatial in
+nature.  More that one dump command and file can be used during a
+simulation by giving each a unique dump-ID.  Note that if written in
+appropriate format, a snapshot from a dump file can easily be
+converted into a data file suitable for input via the
+"read_sites"_read_sites.html command to restart a simulation.
+
+IMPORTANT NOTE: When running in parallel, the order of sites as
+printed to the dump file will be in chunks by processor, not ordered
+by ID.  The order will be the same in every snapshot.
+
+The "dump_modify"_dump_modify command can be used to alter the times
+at which snapshots are written out as well as defined a subset of
+sites to write out.
+
+The text-based dump file is in the format of a "LAMMPS dump
+file"_lammps which can thus be read-in by the "Pizza.py
+toolkit"_pizza, converted to other formats, or used for visualization.
+An important modification to the LAMMPS-style header for each snapshot
+is the addition of real time to the line containing the snapshot
+number, i.e.
+
+ITEM: TIMESTEP TIME
+100   3.23945 :pre
+
+The entry for "NUMBER OF ATOMS" is really number of sites, and will
+reflect any reduction in site count due to the
+"dump_modify"_dump_modify.html command, i.e.
+
+ITEM: NUMBER OF ATOMS
+314159 :pre
+
+If fields are listed, then only those quantities will be printed for
+each site.  If no fields are listed, then a default set of fields are
+output, namely "id site x y z".  These are the possible field values
+which may be specified.
+
+The {id} is a unique integer ID for each site.
+
+The {site}, {iN}, and {dN} fields specify a per-site value.  {Site} is
+the same as {i1}.  {iN} fields are integer values; {dN} fields are
+floating-point value. The application defines how many integer and
+floating=point values are stored for each site.
+
+The {x}, {y}, {z} values are the coordinates of the site.
+
+The {energy} value is what is computed by the energy() function in the
+application.  Likewise for the {propensity} value which can be thought
+of as the relative probablity for that site to perform a KMC event.
+Note that if the application only performs rejection KMC or Metropolis
+MC, then no propensity is defined.
+
+:link(lammps,http://lammps.sandia.gov)
+:link(pizza,http://www.cs.sandia.gov/~sjplimp/pizza.html)
+
+:line
+
+The specified filename determines how the dump file(s) is written.
+The default is to write one large text file, which is opened when the
+dump command is invoked and closed when an "undump"_undump.html
+command is used or when SPPARKS exits.
+
+Dump filenames can contain two wild-card characters.  If a "*"
+character appears in the filename, then one file per snapshot is
+written and the "*" character is replaced with the timestep value.
+For example, tmp.dump.* becomes tmp.dump.0, tmp.dump.10000,
+tmp.dump.20000, etc.
+
+If a "%" character appears in the filename, then one file is written
+for each processor and the "%" character is replaced with the
+processor ID from 0 to P-1.  For example, tmp.dump.% becomes
+tmp.dump.0, tmp.dump.1, ... tmp.dump.P-1, etc.  This creates smaller
+files and can be a fast mode of output on parallel machines that
+support parallel I/O for output.
+
+Note that the "*" and "%" characters can be used together to produce a
+large number of small dump files!
+
+If the filename ends with ".bin", the dump file (or files, if "*" or
+"%" is also used) is written in binary format.  A binary dump file
+will be about the same size as a text version, but will typically
+write out much faster.  Of course, when post-processing, you will need
+to convert it back to text format, using your own code to read the
+binary file.  The format of the binary file can be understood by
+looking at the src/dump.cpp file.
+
+If the filename ends with ".gz", the dump file (or files, if "*" or
+"%" is also used) is written in gzipped format.  A gzipped dump file
+will be about 3x smaller than the text version, but will also take
+longer to write.
+
+:line
+
+[Restrictions:]
+
+This command can only be used as part of on-lattice or off-lattice
+applications.  See the "app_style"_app_style.html command for further
+details.
+
+To write gzipped dump files, you must compile SPPARKS with the
+-DSPPARKS_GZIP option - see the "Making
+SPPARKS"_Section_start.html#2_2 section of the documentation.
+
+[Related commands:]
+
+"dump_one"_dump_one.html, "dump_modify"_dump_modify.html,
+"undump"_undump.html, "stats"_stats.html
+
+[Default:] none

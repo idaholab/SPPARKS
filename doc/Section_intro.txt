@@ -1,0 +1,207 @@
+"Previous Section"_Manual.html - "SPPARKS WWW Site"_sws - "SPPARKS
+Documentation"_sd - "SPPARKS Commands"_sc - "Next
+Section"_Section_start.html :c
+
+:link(sws,http://spparks.sandia.gov)
+:link(sd,Manual.html)
+:link(sc,Section_commands.html#comm)
+
+:line
+
+1. Introduction :h3
+
+These sections provide an overview of what SPPARKS can do, describe
+what it means for SPPARKS to be an open-source code, and acknowledge
+the funding and people who have contributed to SPPARKS.
+
+1.1 "What is SPPARKS"_#intro_1
+1.2 "SPPARKS features"_#intro_2
+1.3 "Open source distribution"_#intro_3
+1.4 "Acknowledgments and citations"_#intro_4 :all(b)
+
+:line
+
+1.1 What is SPPARKS :link(intro_1),h4
+
+SPPARKS is a Monte Carlo code that has algorithms for kinetic Monte
+Carlo (KMC), rejection KMC (rKMC), and Metropolis Monte Carlo (MMC).
+On-lattice and off-lattice applications with spatial sites on which
+"events" occur can be simulated in parallel.
+
+KMC is also called true KMC or rejection-free KMC.  rKMC is also
+called null-event MC.  In a generic sense the code's KMC and rKMC
+solvers catalog a list of events, each with an associated probability,
+choose a single event to perform, and advance time by the correct
+amount.  Events may be chosen individually at random, or a sweep of
+enumarated sites can be performed to select possible events in a more
+ordered fashion.
+
+Note that rKMC is different from Metropolis MC, which is sometimes
+called thermodynamic-equilibrium MC or barrier-free MC, in that rKMC
+still uses rates to define events, often associated with the rate for
+the system to cross some energy barrier.  Thus both KMC and rKMC track
+the dynamic evolution of a system in a time-accurate manner as events
+are performed.  Metropolis MC is typically used to sample states from
+a system in equilibrium or to drive a system to equilibrium (energy
+minimization).  It does this be performing (possibly) non-physical
+events.  As such it has no requirement to sample events with the
+correct relative probabilities or to limit itself to physical events
+(e.g. it can change an atom to a new species).  Because of this it
+also does not evolve the system in a time-accurate manner; in general
+there is no "time" associated with Metropolis MC events.
+
+Applications are implemented in SPPARKS which define events and their
+probabilities and acceptance/rejection criteria.  They are coupled to
+solvers or sweepers to perform KMC or rKMC simulations.  The KMC or
+rKMC options for an application in SPPARKS can be written to define
+rates based on energy differences between the initial and final state
+of an event and a Metropolis-style accept/reject criterion based on
+the Boltzmann factor SPPARKS will then perform a Metropolis-style
+Monte Carlo simulation.
+
+In parallel, a geometric partitioning of the simulation domain is
+performed.  Sub-partitioning of processor domains into colors or
+quadrants (2d) and octants (3d) is done to enable multiple events to
+be performed on multiple processors simultaneously.  Communication of
+boundary information is performed as needed.
+
+Parallelism can also be invoked to perform multiple runs on a
+collection of processors, for statistical puposes.
+
+SPPARKS is designed to be easy to modify and extend.  For example, new
+solvers and sweeping rules can be added, as can new applications.
+Applications can define new commands which are read from the input
+script.
+
+SPPARKS is written in C++.  It runs on single-processor desktop or
+laptop machines, but for some applications, can also run on parallel
+computers.  SPPARKS will run on any parallel machine that compiles C++
+and supports the "MPI"_mpi message-passing library.  This includes
+distributed- or shared-memory machines.
+
+:link(mpi,http://www-unix.mcs.anl.gov/mpi)
+
+SPPARKS is a freely-available open-source code.  See the "SPPARKS WWW
+Site"_sws for download information.  It is distributed under the terms
+of the "GNU Public License (GPL)"_gnu, or sometimes by request under
+the terms of the "GNU Lesser General Public License (LGPL)"_gnu2,
+which means you can use or modify the code however you wish.  The only
+restrictions imposed by the GPL or LGPL are on how you distribute the
+code further.  See "this section"_#intro_3 for a brief discussion of
+the open-source philosophy.
+
+:link(gnu,http://www.gnu.org/copyleft/gpl.html)
+:link(gnu2,http://www.gnu.org/licenses/lgpl-2.1.html)
+
+:line
+
+1.2 SPPARKS features :link(intro_2),h4
+
+These are three kinds of applications in SPPARKS:
+
+on-lattice
+off-lattice
+general :ul
+
+On-lattice applications define static event sites with a fixed
+neighbor connectivity.  Off-lattice applications define mobile event
+sites such as particles.  A particle's neighbors are typically
+specified by a cutoff distance.  General applications have no
+spatial component.
+
+The set of on-lattice applications currently in SPPARKS are:
+
+diffusion model
+Ising model
+Potts model
+membrane model :ul
+
+The set of off-lattice applications currently in SPPARKS are:
+
+Metropolis atomic relaxation model :ul
+
+The set of general applications currently in SPPARKS are:
+
+biochemcial reaction network model
+test driver for solvers using a synthetic biochemical network :ul
+
+These are the KMC solvers currently available in SPPARKS and their
+scaling properties:
+
+linear search, O(N)
+tree search, O(logN)
+composition-rejection search, O(1) :ul
+
+Pre- and post-processing: :h4
+
+Our group has written and released a separate toolkit called
+"Pizza.py"_pizza which provides tools which can be used to setup,
+analyze, plot, and visualize data for SPPARKS simulations.  Pizza.py
+is written in "Python"_python and is available for download from "the
+Pizza.py WWW site"_pizza.
+
+:link(pizza,http://www.cs.sandia.gov/~sjplimp/pizza.html)
+:link(python,http://www.python.org)
+
+:line
+
+1.3 Open source distribution :link(intro_3),h4
+
+SPPARKS comes with no warranty of any kind.  As each source file
+states in its header, it is a copyrighted code that is distributed
+free-of- charge, under the terms of the "GNU Public License"_gnu
+(GPL), or sometimes by request under the terms of the "GNU Lesser
+General Public License (LGPL)"_gnu2.  This is often referred to as
+open-source distribution - see "www.gnu.org"_gnuorg or
+"www.opensource.org"_opensource for more details.  The legal text of
+the GPL or LGPL is in the LICENSE file that is included in the SPPARKS
+distribution.
+
+:link(gnuorg,http://www.gnu.org)
+:link(opensource,http://www.opensource.org)
+
+Here is a summary of what the GPL means for SPPARKS users:
+
+(1) Anyone is free to use, modify, or extend SPPARKS in any way they
+choose, including for commercial purposes.
+
+(2) If you distribute a modified version of SPPARKS, it must remain
+open-source, meaning you distribute source code under the terms of the
+GPL.  You should clearly annotate such a code as a derivative version
+of SPPARKS.
+
+(3) If you distribute any code that used SPPARKS source code,
+including calling it as a library, then that must also be open-source,
+meaning you distribute its source code under the terms of the GPL.
+
+(4) If you give SPPARKS files to someone else, the GPL LICENSE file and
+source file headers (including the copyright and GPL notices) should
+remain part of the code.
+
+In the spirit of an open-source code, if you use SPPARKS for something
+useful or if you fix a bug or add a new feature or applicaton to the
+code, let us know.  We would like to include your contribution in the
+released version of the code and/or advertise your success on our WWW
+page.
+
+:line
+
+1.4 Acknowledgments and citations :h4,link(intro_4)
+
+SPPARKS is distributed by "Sandia National Laboratories"_sandia.
+SPPARKS development has been funded by the "US Department of
+Energy"_doe (DOE), through its LDRD and ASC programs.
+
+:link(sandia,http://www.sandia.gov)
+:link(doe,http://www.doe.gov)
+
+The primary authors of SPPARKS are Steve Plimpton, Aidan Thompson, and
+Alex Slepoy.  They can be contacted via email: sjplimp@sandia.gov,
+athomps@sandia.gov, alexander.slepoy@nnsa.doe.gov.
+
+The following Sandians have also contributed to the design and
+ideas in SPPARKS:
+
+Corbett Battaile
+Liz Holm
+Ed Webb :ul

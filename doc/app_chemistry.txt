@@ -1,0 +1,58 @@
+"SPPARKS WWW Site"_sws - "SPPARKS Documentation"_sd - "SPPARKS Commands"_sc :c
+
+:link(sws,http://spparks.sandia.gov)
+:link(sd,Manual.html)
+:link(sc,Section_commands.html#comm)
+
+:line
+
+app_style chemistry command :h3
+
+[Syntax:]
+
+app_style chemistry :pre
+
+chemistry = application style name :ul
+
+[Examples:]
+
+app_style chemistry :pre
+
+[Description:]
+
+This is a general application which evolves a set of coupled chemical
+reactions stochastically, producing a time trace of species
+concentrations.  Chemical species are treated as counts of individual
+molecules reacting within a reaction volume in a well-mixed fashion.
+Individual reactions are chosen via the direct method variant of the
+Stochastic Simulation Algorithm (SSA) of "(Gillespie)"_#Gillespie.
+
+A prototypical example is to use this model to simulate the execution
+of a protein signaling network in a biological cell.
+
+This application can only be evolved using a kinetic Monte Carlo (KMC)
+algorithm.  You must thus define a KMC solver to be used with the
+application via the "solve_style"_solve_style.html command
+
+:line
+
+The following additional commands are defined by this application:
+
+"add_reaction"_add_reaction.html : define a chemical reaction
+"add_species"_add_species.html : define a chemical species
+"count"_count.html : specify molecular count of a species
+"volume"_volume.html : specify volume of the chemical reactor :tb(s=:)
+
+:line
+
+[Restrictions:] none
+
+[Related commands:] none
+
+[Default:] none
+
+:line
+
+:link(Gillepsie)
+[(Gillepsie)] Gillespie, J Chem Phys, 22, 403-434 (1976);
+Gillespie, J Phys Chem, 81, 2340-2361 (1977).

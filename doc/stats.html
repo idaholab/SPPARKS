@@ -1,0 +1,113 @@
+<HTML>
+<CENTER><A HREF = "http://spparks.sandia.gov">SPPARKS WWW Site</A> - <A HREF = "Manual.html">SPPARKS Documentation</A> - <A HREF = "Section_commands.html#comm">SPPARKS Commands</A> 
+</CENTER>
+
+
+
+
+
+
+<HR>
+
+<H3>stats command 
+</H3>
+<P><B>Syntax:</B>
+</P>
+<PRE>stats delta keyword values ... 
+</PRE>
+<UL><LI>delta = time increment between statistical output (seconds) 
+
+<LI>zero or more keyword/value pairs may be appended 
+
+<LI>keyword = <I>delay</I> or <I>logfreq</I> or <I>loglinfreq</I> 
+
+<PRE>  <I>delay</I> value = tdelay
+    tdelay = delay stats until at least this time (seconds)
+  <I>logfreq</I> or <I>loglinfreq</I> values = N factor
+    N = number of repetitions per interval
+    factor = scale factor between intervals 
+</PRE>
+
+</UL>
+<P><B>Examples:</B>
+</P>
+<PRE>stats 0.1
+stats 0.1 delta 0.5
+stats 1.0 loglinfreq 7 10.0 
+</PRE>
+<P><B>Description:</B>
+</P>
+<P>Print statistics to the screen and log file every so many seconds
+during a simulation.  A value of 0.0 for delta means only print stats
+at the beginning and end of the run, in which case no optional
+keywords can be used.
+</P>
+<P>The quantities printed are elapsed CPU time followed by those provided
+by the <A HREF = "app_style.html">application</A>, followed by those provided by any
+<A HREF = "diag_style.html">diagnostics</A> you have defined.
+</P>
+<P>Typically the application reports only the number of events or sweeps
+executed, followed by the simulation time, but other
+application-specific quantities may also be reported.  Quantities such
+as the total energy of the system can be included in the output by
+creating diagnostics via the <A HREF = "diag_style.html">diag_style</A> command.
+</P>
+<P>The <I>delay</I> keyword will suppress output until <I>tdelay</I> time has
+elapsed.
+</P>
+<P>Using the <I>logfreq</I> or <I>loglinfreq</I> keyword will produce statistical 
+output at progressively larger intervals during the course of a simulation.  
+There will be <I>N</I> outputs per interval where the size of the interval is 
+initially <I>delta</I> and then scales up by <I>factor</I> each time. With <I>loglinfreq</I>,
+output times increase arithmetically within an interval; with <I>logfreq</I> the 
+output times increase geometrically.
+</P>
+<P>For example, this command
+</P>
+<PRE>stats 0.1 loglinfreq 7 10.0 
+</PRE>
+<P>will produce output at times:
+</P>
+<PRE>t = 0, 0.1, 0.2, ..., 0.7, 1, 2, ...., 7, 10, 20, .... 
+</PRE>
+<P>This command
+</P>
+<PRE>stats 0.1 logfreq 1 2.0 
+</PRE>
+<P>will produce output at times:
+</P>
+<PRE>t = 0, 0.1, 0.2, 0.4, 0.8, 1.6, ... 
+</PRE>
+<P>This command
+</P>
+<PRE>stats 1.0 logfreq 10 10.0 
+</PRE>
+<P>will produce output at times:
+</P>
+<PRE>t = 0, 1.0, 1.26, 1.58, 2.00, 2.51, 3.16, 3.98, 5.01, 6.31, 7.94, 10.0, ... 
+</PRE>
+<P>Note that in the above examples the times are the earliest times that output will
+be produced. In practice, because time is incremented in discrete jumps, output
+ will be produced at times somewhat later than these times.
+</P>
+<P>If <I>N</I> is specified as 0, then this will turn off logarithmic output,
+and revert to regular output every <I>delta</I> seconds.
+</P>
+<HR>
+
+<P><B>Restrictions:</B>
+</P>
+<P>See the doc pages for quantities provided by particular
+<A HREF = "app_style.html">app_style</A> and <A HREF = "diag_style.html">diag_style</A> commands
+for further details.
+</P>
+<P><B>Related commands:</B>
+</P>
+<P><A HREF = "dump.html">dump</A>, <A HREF = "diag_style.html">diag_style</A>
+</P>
+<P><B>Default:</B>
+</P>
+<P>The default stats delta is 0.0.  The keyword defaults are delay = 0.0
+and no logarithmic output.
+</P>
+</HTML>

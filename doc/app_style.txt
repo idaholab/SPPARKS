@@ -1,0 +1,132 @@
+"SPPARKS WWW Site"_sws - "SPPARKS Documentation"_sd - "SPPARKS Commands"_sc :c
+
+:link(sws,http://spparks.sandia.gov)
+:link(sd,Manual.html)
+:link(sc,Section_commands.html#comm)
+
+:line
+
+app_style command :h3
+
+[Syntax:]
+
+app_style style args :pre
+
+style = one of a list of possible style names (see below) :ulb,l
+args = arguments specific to an application, see application doc page for details :l
+:ule
+
+[Examples:]
+
+app_style diffusion ...
+app_style ising ...
+app_style potts ...
+app_style relax ...
+app_style chemistry ...
+app_style test/group ... :pre
+
+[Description:]
+
+This command defines what model or application SPPARKS will run.
+There are 3 kinds of applications: on-lattice, off-lattice, and
+general.
+
+On-lattice applications define a set of static sites in space on which
+events occur.  The sites can represent a crystalline lattice, or be
+more disordered.  The key point is that they are immobile and that
+each site's neighborhood of nearby sites can be specified.  Here is
+the list of on-lattice applications SPPARKS currently includes:
+
+"diffusion"_app_diffusion.html = vacancy exchange diffusion model
+"erbium"_app_erbium.html = H/He diffusion/rection on an Erbium lattice
+"ising"_app_ising.html = Ising model
+"ising/single"_app_ising.html = variant Ising model
+"membrane"_app_membrane.html = membrane model of lipid,water,protein
+"potts"_app_potts.html = Potts model for grain growth
+"potts/neigh"_app_potts.html = variant Potts model
+"potts/neighonly"_app_potts.html = variant Potts model
+"potts/pin"_app_potts_pin.html = Potts model with pinning sites
+"potts/strain"_app_potts_strain.html = Potts model with per-site strain :ul
+
+Off-lattice applications define a set of mobile sites in space on
+which events occur.  The sites typically represent particles.  Each
+site's neighborhood of nearby sites is defined by a cutoff distance.
+Here is the list of off-lattice applications SPPARKS currently
+includes.
+
+"relax"_app_relax.html = Metropolis Monte Carlo relaxation :ul
+
+General applications require no spatial information.  Events are
+defined by the application, as well as the influence of each event on
+others.  Here is the list of general applications SPPARKS currently
+includes.
+
+"chemistry"_app_chemistry.html = biochemical reaction networks
+"test/group"_app_test_group.html = artificial chemical networks that test "solve_style"_solve_style.html :ul
+
+The general applications in SPPARKS can only be evolved via a kinetic
+Monte Carlo (KMC) solver, specified by the
+"solve_style"_solve_style.html command.  On-lattice and off-lattice
+applications can be evolved by either a KMC solver or a rejection
+kinetic Monte Carlo (rKMC) method or a Metropolis (MMC) method.  The
+rKMC and MMC methods are specified by the "sweep"_sweep.html command.
+Not all on- and off-lattice applications support each option.
+
+KMC models are sometimes called rejection-free KMC or the N-fold way
+or the Gillespie algorithm in the MC literature.  The application
+defines a list of "events" and associated rates for each event.  The
+solver chooses the next event, and the application updates the system
+accordingly.  This includes updating of the time, which is done
+accurately since rates are defined for each event.  For general
+applications the definition of an "event" is arbitrary.  For
+on-lattice application zero or more possible events are typically
+defined for each site.
+
+rKMC models are sometimes called null-event KMC or null-event MC.
+Sites are chosen via some method (see the "sweep"_sweep.html command),
+and an event on that site is then selected which is accepted or
+rejected.  Again, the application defines the "events" for each site
+and associated rates which influence the acceptance or rejection.  It
+also defines the null event which is essentially part of the rejection
+probability.
+
+For KMC and rKMC models, a time is associated with each event
+(including the null event) by rates that the user defines.  Thus event
+selection induces a time-accurate simulation.  The MMC method is
+similar to the rKMC method, except that it is not time-accurate.  It
+selects an event to perform and accepts or rejects it, typically based
+on an energy change in the system.  There is no rate associated with
+the event, and no requirement that events be chosen with relative
+probabilities corresponding to their rates.  The Metropolis method
+tends to evolve the system towards a low energy state.  As with the
+rKMC method, the "sweep"_sweep.html command is used to determine how
+sites are selected.
+
+For all three methods (KMC, rKMC, MMC) the rules for how events are
+defined and are accepted or rejected are discussed in the doc pages
+for the individual applications.
+
+This table lists the different kinds of solvers and sweeping options
+that can be used for on- and off-lattice applications in SPPARKS.
+Serial and parallel refer to running on one or many processors.
+Sector vs no-sector is what is set by the "sector"_sector.html
+command.  The rKMC options are set by the "sweep"_sweep.html command.
+The MMC options are the same as for rKMC.
+
+method,	serial/no-sectors, serial/sectors, parallel/no-sectors, parallel/sectors
+exact KMC, yes, yes, no, yes
+rKMC random, yes, yes, no, yes
+rKMC raster, yes, yes, no, yes
+rKMC color, yes, yes, yes, yes
+rKMC color/strict, yes, no, yes, no :tb(ea=c)
+
+Note that masking can also be turned on for rKMC algorithms via the
+"sweep"_sweep.html command if the application supports it.
+Off-lattice applications do not support the {color} or {masking}
+options.
+
+[Restrictions:] none
+
+[Related commands:] none
+
+[Default:] none

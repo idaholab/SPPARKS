@@ -1,0 +1,150 @@
+<HTML>
+<CENTER><A HREF = "http://spparks.sandia.gov">SPPARKS WWW Site</A> - <A HREF = "Manual.html">SPPARKS Documentation</A> - <A HREF = "Section_commands.html#comm">SPPARKS Commands</A> 
+</CENTER>
+
+
+
+
+
+
+<HR>
+
+<H3>create_sites command 
+</H3>
+<P><B>Syntax:</B>
+</P>
+<PRE>create_sites style arg keyword values ... 
+</PRE>
+<UL><LI>style = <I>box</I> or <I>region</I> 
+
+<PRE>  <I>box</I> arg = none
+  <I>region</I> arg = region-ID
+    region-ID = sites will only be created if contained in the region 
+</PRE>
+<LI>zero or more keyword/value pairs may be appended 
+
+<LI>keyword = <I>value</I> or <I>basis</I> 
+
+<PRE>  <I>value</I> values = label nvalue
+    label = <I>site</I> or <I>iN</I> or <I>dN</I>
+    nvalue = specific value to set all created sites to
+  <I>basis</I> values = M nvalue
+    M = which basis site (see asterisk form below)
+    nvalue = specific value to set all created basis sites to 
+</PRE>
+
+</UL>
+<P><B>Examples:</B>
+</P>
+<PRE>create_sites box
+create_sites region surf value site 1
+create_sites box value i2 0 basis 1 1 basis 2* 2 
+</PRE>
+<P><B>Description:</B>
+</P>
+<P>This command creates "sites" on a lattice for on-lattice and
+off-lattice applications.  For on-lattice applications it also defines
+a connectivity between sites that is stored as a neighbor list of
+nearby sites that each site interacts with.
+</P>
+<P>This command is an alternative to reading in site coordinates and
+neighbor connectivity via the <A HREF = "read_sites.html">read_sites</A> command.
+</P>
+<P>To use this command, a simulation box must already exist, created via
+the <A HREF = "create_box.html">create_box</A> command.  Likewise a lattice must
+also be defined using the <A HREF = "lattice.html">lattice</A> command.
+</P>
+<P>In SPPARKS, a "site" is a point in space at which an application, as
+defined by the <A HREF = "app_style.html">app_style</A> command, can perform events.
+For on-lattice applications, the site is static and has a static set
+of neighboring sites with which it interacts.  For off-lattice
+applications, a site is like a particle.  It moves and has a dynamic
+neighborhood of nearby particles with which it interacts.
+</P>
+<P>This command generates the set of lattice points that fall within the
+simulation box.  For any periodic dimension, as specified by the
+<A HREF = "boundary.html">boundary</A> command, the simulation box size must be an
+integer multiple of the lattice constant, to insure consistent
+placement of sites near periodic boundaries.  SPPARKS is careful to
+put exactly one site at a periodic boundary (on either side of the
+box), not zero or two.  For non-periodic dimensions, no checking near
+boundaries is done; if the point is inside or on the boundary, it is a
+site.  The one exception is that points that lie exactly on the upper
+boundary (in a non-periodic dimension) are considered to be outside
+the box.  Thus in non-periodic dimensions you may need to tweak the
+simulation box size to get precisely the sites you want.
+</P>
+<P>For the <I>box</I> style, all lattice points that fall inside the
+simulation box are stored as sites, as described in the preceding
+paragraph.  For the <I>region</I> style, a lattice point must additionally
+be consistent with the region volume to be stored as a site.  Note
+that a region can be specified so that its volume is either inside or
+outside a geometric boundary.
+</P>
+<P>For on-lattice applications, after sites have been created, a neighbor
+list is also generated for each site, as defined by each <A HREF = "lattice.html">lattice
+style</A>.  Think of this as the set of lattice points near
+a central site, with which it interacts in the sense defined by an
+application.  If the simulation box is periodic in a dimension, the
+neighbors of a central site may include sites on the other side of the
+box.  This will not be the case for a non-periodic dimension.  If some
+sites do not exist, e.g. when using the <I>region</I> style, then some
+sites will not have a complete set of neighbors.
+</P>
+<HR>
+
+<P>SPPARKS attempts to create sites with consecutive IDs from 1 to N,
+where N is the total number of sites that fill the simulation box.
+The numbering is the same, independent of the number of processors.
+Note that if the simulation box is non-periodic or the <I>region</I> style
+is used, some sites may not exist, so the site IDs will not typically
+be contiguous.  I.e. the largest ID will be greater than the number of
+created sites.
+</P>
+<P>Depending on the <A HREF = "app_style.html">application</A>, each site stores zero
+of more integer and floating-point values.  By default these are set
+to zero when a site is created by this command.  The <I>value</I> and
+<I>basis</I> keywords can override the default.
+</P>
+<P>The <I>value</I> keyword specifies a per-site value that will be assigned
+to every site as it is created.  The <I>label</I> determines which per-site
+quantity is set.  <I>iN</I> and <I>dN</I> mean the Nth integer or floating-point
+quantity, with 1 <= N <= Nmax.  Nmax is defined by the application.
+If <I>label</I> is specified as <I>site</I> it is the same as <I>i1</I>.  The
+quantity is set to the specified <I>nvalue</I>, which should be either an
+integer or floating-point numeric value, depending on what kind of
+per-site quantity is being set.
+</P>
+<P>The <I>basis</I> keyword can be used to override the <I>value</I> keyword
+setting for individual basis sites as each unit cell is created.  The
+per-site quantity (e.g. i2) specified by the <I>value</I> keyword is set
+for basis sites <I>M</I>.  The quantity is set to the specified <I>nvalue</I>
+for the <I>basis</I> keyword, instead of the <I>nvalue</I> from the <I>value</I>
+keyword.  See the <A HREF = "lattice.html">lattice</A> command for specifics on how
+basis atoms and unit cells are defined for each lattice style.
+</P>
+<P>M can be specified in one of two ways.  An explicit numeric value can
+be used, such as 2.  A wild-card asterisk can also be used in place of
+or in conjunction with the M argument to specify multiple basis sites
+together.  This takes the form "*" or "*n" or "n*" or "m*n".  If N =
+the total number of basis sites, then an asterisk with no numeric
+values means all sites from 1 to N.  A leading asterisk means all
+sites from 1 to n (inclusive).  A trailing asterisk means all sites
+from n to N (inclusive).  A middle asterisk means all sites from m to
+n (inclusive).
+</P>
+<P><B>Restrictions:</B>
+</P>
+<P>The <A HREF = "app_style.html">app_style</A> command must be used to define an
+application before using the create_sites command.  The
+<A HREF = "create_box.html">create_box</A> command must be used to to define the
+simulation box before using the create_sites_command.
+</P>
+<P><B>Related commands:</B>
+</P>
+<P><A HREF = "lattice.html">lattice</A>, <A HREF = "region.html">region</A>,
+<A HREF = "create_box.html">create_box</A>, <A HREF = "read_sites.html">read_sites</A>
+</P>
+<P><B>Default:</B> none
+</P>
+</HTML>

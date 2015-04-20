@@ -1,0 +1,36 @@
+"SPPARKS WWW Site"_sws - "SPPARKS Documentation"_sd - "SPPARKS Commands"_sc :c
+
+:link(sws,http://spparks.sandia.gov)
+:link(sd,Manual.html)
+:link(sc,Section_commands.html#comm)
+
+:line
+
+diag_style energy command :h3
+
+[Syntax:]
+
+diag_style energy keyword value keyword value ... :pre
+
+energy = style name of this diagnostic
+see the "diag_style"_diag_style.html command for additional keywords that can be appended to a diagnostic command :ul
+
+[Examples:]
+
+diag_style energy :pre
+
+[Description:]
+
+The energy diagnostic computes the total energy of all lattice sites
+in the system.  The energy is printed as stats output via the
+"stats"_stats.html command.
+
+[Restrictions:]
+
+This diagnostic can only be used for on-lattice applications.
+
+[Related commands:]
+
+"diag_style"_diag_style.html, "stats"_stats.html
+
+[Default:] none

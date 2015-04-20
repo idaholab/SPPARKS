@@ -1,0 +1,127 @@
+"SPPARKS WWW Site"_sws - "SPPARKS Documentation"_sd - "SPPARKS Commands"_sc :c
+
+:link(sws,http://spparks.sandia.gov)
+:link(sd,Manual.html)
+:link(sc,Section_commands.html#comm)
+
+:line
+
+solve_style command :h3
+
+[Syntax:]
+
+solve_style style args keyword value ... :pre
+
+style = {linear} or {tree} or {group} or {none} :ulb,l
+  {linear} arg = none
+  {tree} arg = none
+  {group} args = hi lo 
+    hi,lo = range of allowed probabilities
+  {none} arg = none :pre
+zero or more keyword/value pairs may be appended :l
+keyword = {ngroup} :l
+  {ngroup} value = N
+    N = # of groups to use :pre
+:ule
+
+[Examples:]
+
+solve_style linear
+solve_style tree
+solve_style group 1.0 1.0e-6
+solve_style group 100.0 1.0 ngroup 10 :pre
+
+[Description:]
+
+Choose a kinetic Monte Carlo (KMC) solver to use in your
+"application"_app_style.html.  If no "sweeper"_sweep.html is used then
+a solver is required.
+
+A KMC solver picks events for your application to perform from a list
+of events and their associated probabilities.  It does this using the
+standard "Gillespie"_#Gillespie or "BKL"_#BKL algorithm which also
+computes a timestep during which the chosen event occus.  The only
+difference between the various solver styles is the algorithm they use
+to select events which affects their speed and scalability as a
+function of the number of events they choose from.  The {linear}
+solver may be suitable for simulations with few events; the {tree} or
+{group} solver should be used for larger simulations.
+
+The {linear} style chooses an event by scanning the list of events in
+a linear fashion.  Hence the cost to pick an event scales as O(N),
+where N is the number of events.
+
+The {tree} style chooses an event by creating a binary tree of
+probabilities and their sums, as in the "Gibson/Bruck"_#Gibson
+implementation of the Gillespie direct method algorithm.  Its cost to
+pick an event scales as O(logN).
+
+The {group} style chooses an event using the composition and rejection
+(CR) algorithm described originally in "Devroye"_#Devroye and
+discussed in "Slepoy"_#Slepoy.  Its cost to pick an event scales as
+O(1) as it is a constant time algorithm.  It requires that you bound
+the {hi} and {lo} probabilities for any event that will be considered
+with the solver.  Note that for on-lattice applications this is
+typically the total probability of all events associated with a site.
+The value of {lo} must be > 0.0 and {lo} cannot be >= {hi}.  For
+efficiency purposes it is good to choose bounds that are reasonably
+tight.
+
+By default, the {group} style will create groups whose boundaries
+cascade downward in powers of 2 from {hi} to {lo}.  I.e. the first
+group is from hi/2 to hi, the second group is from hi/4 to hi/2, and
+continuing until {lo} is reached.  Note that for hi/lo = 1.0e6, there
+would thus be about 20 groups.
+
+If the {ngroup} keyword is used, then it specifies the number of
+groups to use between {lo} and {hi} and they will be equal in extent.
+E.g. for {ngroup} = 3, the first group is from lo to lo + (hi-lo)/3,
+the second group is from lo + 2*(hi-lo)/3, and the third group is from
+lo + 2*(hi-lo)/3 to hi.
+
+IMPORTANT NOTE: For the {group} style, if an event is generated that
+has a probability = 0.0 (e.g. a site has no possible event), that is
+not a violation of the {lo} bound.  However if an event is generated
+with a non-zero probability and the probability is less than {lo} or
+greater than {hi}, then the probability is reset by the solver to the
+{lo} or {hi} bound.  If this occurs during a run, SPPARKS will print
+out a warning message (either before the run, or at the end of the
+script), since it indicates events have been selected using (slightly)
+different probabilities than the model generated.  This allows you to
+set a different {lo} or {hi} bound and re-run the simulation.
+
+The {none} style deletes any KMC solver previously defined.  This may
+be useful for transitioning from a KMC solver in one run to a
+"sweeping method"_sweep.html with a rejection-KMC solver in a
+subsequent run.
+
+[Restrictions:]
+
+The {ngroup} keyword can only be used with style {group}.
+
+[Related commands:]
+
+"app_style"_app_style.html, "sweep_style"_sweep_style.html
+
+[Default:] none
+
+:line
+
+:link(Gillespie)
+[(Gillespie)] Gillespie, J Comp Phys, 22, 403-434 (1976);
+Gillespie, J Phys Chem, 81, 2340-2361 (1977).
+
+:link(BKL)
+[(BKL)] Bortz, Kalos, Lebowitz, J Comp Phys, 17, 10 (1975).
+
+:link(Gibson)
+[(Gibson)] Gibson and Bruck, J Phys Chem, 104, 1876 (2000).
+
+:link(Devroye)
+[(Devroye)] Devroye, "Non-Uniform Random Variate Generation"_book,
+Springer-Verlag, New York (1986).
+
+:link(book,http://cg.scs.carleton.ca/~luc/rnbookindex.html)
+
+:link(Slepoy)
+[(Slepoy)] Slepoy, Thompson, Plimpton, J Chem Phys, 128, 205101 (2008).

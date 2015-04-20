@@ -1,0 +1,70 @@
+<HTML>
+<CENTER><A HREF = "http://spparks.sandia.gov">SPPARKS WWW Site</A> - <A HREF = "Manual.html">SPPARKS Documentation</A> - <A HREF = "Section_commands.html#comm">SPPARKS Commands</A> 
+</CENTER>
+
+
+
+
+
+
+<HR>
+
+<H3>pair_style lj command 
+</H3>
+<P><B>Syntax:</B>
+</P>
+<PRE>pair_style lj Ntypes cutoff 
+</PRE>
+<UL><LI>lj = style name of this pair style
+<LI>Ntypes = # of particle types
+<LI>cutoff = global cutoff for pairwise interactions (distance units) 
+</UL>
+<P><B>Examples:</B>
+</P>
+<PRE>pair_style lj 1 2.5
+pair_style lj 3 3.0 
+</PRE>
+<P><B>Description:</B>
+</P>
+<P>The <I>lj/cut</I> style computes the standard 12/6 Lennard-Jones potential,
+given by
+</P>
+<CENTER><IMG SRC = "Eqs/pair_lj.jpg">
+</CENTER>
+<P>Rc is the cutoff.
+</P>
+<P>The following coefficients must be defined for each pair of particle
+types via the <A HREF = "pair_coeff.html">pair_coeff</A> command, or by mixing as
+described below:
+</P>
+<UL><LI>epsilon (energy units)
+<LI>sigma (distance units)
+<LI>cutoff (distance units) 
+</UL>
+<P>Note that sigma is defined in the LJ formula as the zero-crossing
+distance for the potential, not as the energy minimum at 2^(1/6)
+sigma.
+</P>
+<P>The last coefficients is optional.  If not specified, the global LJ
+cutoff specified in the pair_style command is used.
+</P>
+<HR>
+
+<P><B>Mixing info</B>:
+</P>
+<P>For atom type pairs I,J and I != J, the epsilon and sigma coefficients
+and cutoff distance for all of the lj/cut pair styles can be mixed.
+The style of mixing is <I>geometric</I>, which means that
+</P>
+<PRE>epsilon_ij = sqrt(epsilon_i * epsilon_j)
+sigma_ij = sqrt(sigma_i * sigma_j) 
+</PRE>
+<HR>
+
+<P><B>Restrictions:</B> none
+</P>
+<P><B>Related commands:</B> none
+</P>
+<P><B>Default:</B> none
+</P>
+</HTML>

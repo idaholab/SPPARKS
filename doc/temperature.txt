@@ -1,0 +1,44 @@
+"SPPARKS WWW Site"_sws - "SPPARKS Documentation"_sd - "SPPARKS Commands"_sc :c
+
+:link(sws,http://spparks.sandia.gov)
+:link(sd,Manual.html)
+:link(sc,Section_commands.html#comm)
+
+:line
+
+temperature command :h3
+
+[Syntax:]
+
+temperature T :pre
+
+T = value of temperature for the Monte Carlo simulation (energy units) :ul
+
+[Examples:]
+
+temperature 2.0 :pre
+
+[Description:]
+
+This command sets the temperature as used in various applications.
+The typical usage would be as part of a Boltzmann factor that alters
+the propabilities of event acceptance and rejection.
+
+The units of the specfied temperature should be consistent with how
+the application defines energy.  E.g. if used in a Boltzmann factor
+where a kT factor scales the energy of a Hamiltonian defined by the
+application, then this command is really defining kT and the specified
+value should have the units of energy as computed by the Hamiltonian.
+
+[Restrictions:] none
+
+This command can only be used as part of applications that allow for a
+temperature to be specified.  See the doc pages for individual
+applications defined by the "app_style"_app_style.html command for
+further details.
+
+[Related commands:] none
+
+[Default:]
+
+The default temperature is 0.0.

@@ -1,0 +1,30 @@
+# SPPARKS membrane application = protein + lipid + solvent
+
+seed		12345
+
+app_style       membrane 1.25 1.0 -3.0
+
+dimension	 2
+lattice		 tri 1.0
+region		 box block 0 100 0 50 -0.5 0.5
+create_box	 box
+create_sites	 box
+set		 site value 1
+
+solve_style     tree
+sector		yes tstop 1.0
+
+inclusion	20 20 0 6
+inclusion	40 20 0 6
+inclusion	10 37 0 6
+inclusion	50 37 0 6
+inclusion	20 54 0 6
+inclusion	40 54 0 6
+
+stats           10.0
+diag_style      energy
+
+dump            1 text 5.0 dump.membrane
+
+temperature	0.7
+run             500

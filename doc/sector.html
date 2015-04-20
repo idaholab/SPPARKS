@@ -1,0 +1,160 @@
+<HTML>
+<CENTER><A HREF = "http://spparks.sandia.gov">SPPARKS WWW Site</A> - <A HREF = "Manual.html">SPPARKS Documentation</A> - <A HREF = "Section_commands.html#comm">SPPARKS Commands</A> 
+</CENTER>
+
+
+
+
+
+
+<HR>
+
+<H3>sector command 
+</H3>
+<P><B>Syntax:</B>
+</P>
+<PRE>sector flag keyword value ... 
+</PRE>
+<UL><LI>flag = <I>yes</I> or <I>no</I> or <I>N</I> where N = 2,4,8 
+
+<LI>zero or more keyword/value pairs may be appended 
+
+<LI>keyword = <I>tstop</I> or <I>nstop</I> 
+
+<PRE>  <I>tstop</I> value = dt
+    dt = elapsed time for events to perform within sector (seconds)
+  <I>nstop</I> value = N
+    N = average number of events per site to perform within sector 
+</PRE>
+
+</UL>
+<P><B>Examples:</B>
+</P>
+<PRE>sector no
+sector yes
+sector 4
+sector yes nstop 0.5
+sector yes tstop 5.0 
+</PRE>
+<P><B>Description:</B>
+</P>
+<P>This command partitions the portion of the simulation domain owned by
+each processor into sectors or sub-domains.  It can only be used for
+<A HREF = "app_style.html">on-lattice applications</A>.  Typically, it is used in a
+parallel simulation, to enable parallelism, but it can also be used on
+a single processor.
+</P>
+<P>If sectoring is enabled via the <I>yes</I> setting, then for 1d lattices,
+each processor's sub-domain is partioned into 2 halves, for 2d
+lattices, each processor's sub-domain is partitioned into 4 quadrants,
+and for 3d lattices it is partitioned into 8 octants.  If the <I>N</I>
+setting is used instead, then the number of sectors can be specified
+directly.  This may be useful in some models to reduce communication.
+A 3d lattice can use 2 (x only) or 4 sectors (x and y), instead of the
+default 8 (x and y and z).  A 2d lattice can use 2 sectors (x only),
+instead of the default 4 (x and y).  Note that if no sectors are used
+in a dimension, then there must be only one processor assigned to that
+dimension of the simulation box (see the <A HREF = "app_style.html">app_style
+procs</A> command).  For example, if "sector 2" is used
+for a 2d lattice, then the processor layout must be Px1, where P is
+the total number of processors.
+</P>
+<P>If sectors are turned on, then a kinetic Monte Carlo (KMC) or
+rejection KMC (rKMC) algorithm is performed in the following manner.
+Events or sites are selected within the first sector on each
+processor, via a <A HREF = "solve_style.html">solver</A> or <A HREF = "sweep.html">sweeping
+method</A>.  Communication is then done between processors to
+update sector boundaries.  Then all proecessors move to the next
+sector, and the process is repeated.  Thus a single sweep over the
+entire lattice is performed in 2 (or 4 or 8) stages for 1d (of 2d or
+3d) lattices, as sectors are processed one at a time, followed by the
+appropriate communication.  This procedure insure events occurring on
+one processor do not conflict with events performed by other
+processors.
+</P>
+<P>The optional keywords determine how much time is spent on each sector
+(i.e. how many events are performed) before moving to the next sector.
+See the discussion below for what they mean when sectoring is set to
+<I>no</I>.
+</P>
+<P>Note that using sectors turns an exact KMC or rKMC algorithm into an
+approximate one, in the spirit of <A HREF = "#Amar">Amar</A>.  This is because
+events are occuring within a sector while the state of the system on
+the boundary of the sector is held frozen.  If the time-per-sector is
+too large, this will require less communication but will induce
+incorrect dynamics at the sector boundaries.  Conversely, if the
+time-per-sector is too small, the simulation will perform few events
+per sector and spend too much time communicating.
+</P>
+<P>If the <I>tstop</I> keyword is set to a value > 0.0, it sets the time per
+sector to the specified value.  For a KMC algorithm, events are
+performed until this time threshhold is reached.  The final event,
+whose time >= tstop, is not accepted.  For a rKMC algorithm, the time
+per attempted event = dt_sweep is defined by the application, and the
+number of attempted events in each sector is set to
+nsite*int(tstop/dt_sweep).  Because of integer truncation, the
+simulation time increment in rKMC may differ slightly from the
+specified tstop.
+</P>
+<P>If the <I>nstop</I> keyword is set to a value > 0.0, it sets the average
+number of events (or attempts) per site.  For example, an <I>nstop</I>
+value of 2.0 means attempt 2 events per site for a rKMC algorithm.
+For a KMC algorithm, this is converted into a time using pmax = the
+maximum propensity per site.  At the start of each visit to a sector,
+the per-site propensity for the sector = psect, is computed.  Psect is
+the total propensity of the sector divided by the total number of
+active sites, which are those with propensity greater than zero.
+After all sectors have been visited, pmax is set to the largest value
+of psect across all processors and sectors, and the threshold time for
+the next visit to each sector is set to nstop/pmax.
+</P>
+<P>In the KMC case, this means that if the total propensity of the system
+decreases as the simulation proceeds (e.g. grain growth occurs), then
+the effective time per sweep will increase in an adaptive way.  Said
+another way, the number of events per sweep will remain roughly
+constant, as the time per event increases.  In the rKMC case, the time
+per attempt is constant due to the use of a null-bin, so there is no
+adaptivity.
+</P>
+<P>If neither the <I>tstop</I> or <I>nstop</I> keywords are specified, a default
+value of nstop = 1.0 is used, meaning one event per site is performed
+or attempted in the KMC or rKMC algorithm in each sector.  This should
+give good behavior in many applications, meaning high accuracy is
+achieved with good parallel performance due to a modest amount of
+communication being performed.
+</P>
+<P>Note that it makes no sense to specify both <I>tstop</I> and <I>nstop</I> since
+they define the time-per-sector in different ways.  When <I>tstop</I> is
+specified, it sets <I>nstop</I> to 0.0.  Likewise when <I>nstop</I> is
+specified, it sets <I>tstop</I> to 0.0.  Thus if both are used, the last
+setting takes precedence.
+</P>
+<P>If sectors are turned off via the <I>no</I> setting, then the <I>nstop</I> or
+<I>tstop</I> settings still have an effect for rKMC simulations where the
+<A HREF = "sweep.html">sweep</A> style is set to <I>color</I>.  They determine how many
+times the sites associated with each color are looped over before
+moving to the next color.  Normally, this should just be 1, which is
+the <I>nstop</I> default, but this can be changed if desired.
+</P>
+<P><B>Restrictions:</B>
+</P>
+<P>This command can only be used as part of on-lattice applications
+as specified by the <A HREF = "app_style.html">app_style</A> command.
+</P>
+<P><B>Related commands:</B>
+</P>
+<P><A HREF = "app_style.html">app_style</A>, <A HREF = "solve_style.html">solve_style</A>,
+<A HREF = "sweep.html">sweep</A>
+</P>
+<P><B>Default:</B>
+</P>
+<P>The default for sectoring is <I>no</I> and the option defaults are nstop =
+1.0 and tstop = 0.0.
+</P>
+<HR>
+
+<A NAME = "Amar"></A>
+
+<P><B>(Amar)</B> Shin and Amar, Phys Rev B, 71, 125432-1-125432-13 (2005).
+</P>
+</HTML>

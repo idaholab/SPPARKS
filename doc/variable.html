@@ -1,0 +1,280 @@
+<HTML>
+<CENTER><A HREF = "http://spparks.sandia.gov">SPPARKS WWW Site</A> - <A HREF = "Manual.html">SPPARKS Documentation</A> - <A HREF = "Section_commands.html#comm">SPPARKS Commands</A> 
+</CENTER>
+
+
+
+
+
+
+<HR>
+
+<H3>variable command 
+</H3>
+<P><B>Syntax:</B>
+</P>
+<PRE>variable name style args ... 
+</PRE>
+<UL><LI>name = name of variable to define 
+
+<LI>style = <I>index</I> or <I>loop</I> or <I>world</I> or <I>universe</I> or <I>uloop</I> or <I>equal</I> or <I>atom</I> 
+
+<PRE>  <I>index</I> args = one or more strings
+  <I>loop</I> args = N = integer size of loop
+  <I>world</I> args = one string for each partition of processors
+  <I>universe</I> args = one or more strings
+  <I>uloop</I> args = N = integer size of loop
+  <I>equal</I> args = one formula containing numbers, math operations, variable references
+    numbers = 0.0, 100, -5.4, 2.8e-4, etc
+    constants = PI
+    keywords = time, nglobal
+    math operations = (), -x, x+y, x-y, x*y, x/y, x^y, 
+                      sqrt(x), exp(x), ln(x), log(x),
+                      sin(x), cos(x), tan(x), asin(x), acos(x), atan(x),
+                      ceil(x), floor(x), round(x)
+    other variables = v_abc, v_n 
+</PRE>
+
+</UL>
+<P><B>Examples:</B>
+</P>
+<PRE>variable x index run1 run2 run3 run4 run5 run6 run7 run8
+variable LoopVar loop $n
+variable MyValue equal 5.0*exp(v_energy/(v_boltz*v_Temp))
+variable beta equal v_temp/3.0
+variable temp world 300.0 310.0 320.0 ${Tfinal}
+variable x universe 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15
+variable x uloop 15 
+</PRE>
+<P><B>Description:</B>
+</P>
+<P>This command assigns one or more strings to a variable name for
+evaluation later in the input script or during a simulation.
+</P>
+<P>Variables can be used in several ways in SPPARKS.  A variable can be
+referenced elsewhere in an input script to become part of a new input
+command.  For variable styles that store multiple strings, the
+<A HREF = "next.html">next</A> command can be used to increment which string is
+assigned to the variable.  Variables of style <I>equal</I> can be evaluated
+to produce a single numeric value which can be output directly via the
+<A HREF = "print.html">print</A> command.
+</P>
+<P>In the discussion that follows, the "name" of the variable is the
+arbitrary string that is the 1st argument in the variable command.
+This name can only contain alphanumeric characters and underscores.
+The "string" is one or more of the subsequent arguments.  The "string"
+can be simple text as in the 1st example above, it can contain other
+variables as in the 2nd example, or it can be a formula as in the 3rd
+example.  The "value" is the numeric quantity resulting from
+evaluation of the string.  Note that the same string can generate
+different values when it is evaluated at different times during a
+simulation.
+</P>
+<P>IMPORTANT NOTE: When a variable command is encountered in the input
+script and the variable name has already been specified, the command
+is ignored.  This means variables can NOT be re-defined in an input
+script (with 2 exceptions, read further).  This is to allow an input
+script to be processed multiple times without resetting the variables;
+see the <A HREF = "jump.html">jump</A> or <A HREF = "include.html">include</A> commands.  It also
+means that using the <A HREF = "Section_start.html#2_6">command-line switch</A> -var
+will override a corresponding variable setting in the input script.
+</P>
+<P>There are two exceptions to this rule.  First, variables of style
+<I>equal</I> ARE redefined each time the command is encountered.  This
+allows them to be reset, when their formulas contain a substitution
+for another variable, e.g. $x.  This can be useful in a loop.  This
+also means an <I>equal</I>-style variable will re-define a command-line
+switch -var setting, so an <I>index</I>-style variable should be used for
+such settings instead, as in bench/in.lj.
+</P>
+<P>Second, as described below, if a variable is iterated on to the end of
+its list of strings via the <A HREF = "next.html">next</A> command, it is removed
+from the list of active variables, and is thus available to be
+re-defined in a subsequent variable command.
+</P>
+<HR>
+
+<P><A HREF = "Section_commands.html#3_2">This section</A> of the manual explains how
+occurrences of a variable name in an input script line are replaced by
+the variable's string.  The variable name can be referenced as $x if
+the name "x" is a single character, or as ${LoopVar} if the name
+"LoopVar" is one or more characters.
+</P>
+<P>As described below, for variable styles <I>index</I>, <I>loop</I>, <I>universe</I>,
+and <I>uloop</I>, which string is assigned to a variable can be incremented
+via the <A HREF = "next.html">next</A> command.  When there are no more strings to
+assign, the variable is exhausted and a flag is set that causes the
+next <A HREF = "jump.html">jump</A> command encountered in the input script to be
+skipped.  This enables the construction of simple loops in the input
+script that are iterated over and then exited from.
+</P>
+<HR>
+
+<P>For the <I>index</I> style, one or more strings are specified.  Initially,
+the 1st string is assigned to the variable.  Each time a
+<A HREF = "next.html">next</A> command is used with the variable name, the next
+string is assigned.  All processors assign the same string to the
+variable.
+</P>
+<P><I>Index</I> style variables with a single string value can also be set by
+using the command-line switch -var; see <A HREF = "Section_start.html#2_6">this
+section</A> for details.
+</P>
+<P>The <I>loop</I> style is identical to the <I>index</I> style except that the
+strings are the integers from 1 to N.  This allows generation of a
+long list of runs (e.g. 1000) without having to list N strings in the
+input script.  Initially, the string "1" is assigned to the variable.
+Each time a <A HREF = "next.html">next</A> command is used with the variable name,
+the next string ("2", "3", etc) is assigned.  All processors assign
+the same string to the variable.
+</P>
+<P>For the <I>world</I> style, one or more strings are specified.  There must
+be one string for each processor partition or "world".  See <A HREF = "Section_start.html#2_6">this
+section</A> of the manual for information on
+running SPPARKS with multiple partitions via the "-partition"
+command-line switch.  This variable command assigns one string to each
+world.  All processors in the world are assigned the same string.  The
+next command cannot be used with <I>equal</I> style variables, since there
+is only one value per world.  This style of variable is useful when
+you wish to run different simulations on different partitions.
+</P>
+<P>For the <I>universe</I> style, one or more strings are specified.  There
+must be at least as many strings as there are processor partitions or
+"worlds".  See <A HREF = "Section_start.html#2_6">this page</A> for information on
+running SPPARKS with multiple partitions via the "-partition"
+command-line switch.  This variable command initially assigns one
+string to each world.  When a <A HREF = "next.html">next</A> command is encountered
+using this variable, the first processor partition to encounter it, is
+assigned the next available string.  This continues until all the
+variable strings are consumed.  Thus, this command can be used to run
+50 simulations on 8 processor partitions.  The simulations will be run
+one after the other on whatever partition becomes available, until
+they are all finished.  <I>Universe</I> style variables are incremented
+using the files "tmp.spparks.variable" and "tmp.spparks.variable.lock"
+which you will see in your directory during such a SPPARKS run.
+</P>
+<P>The <I>uloop</I> style is identical to the <I>universe</I> style except that the
+strings are the integers from 1 to N.  This allows generation of long
+list of runs (e.g. 1000) without having to list N strings in the input
+script.
+</P>
+<HR>
+
+<P>For the <I>equal</I> style, a single string is specified which represents a
+formula that will be evaluated afresh each time the variable is used.
+If you want spaces in the string, enclose it in double quotes so the
+parser will treat it as a single argument.  For <I>equal</I> style
+variables the formula computes a scalar quantity, which becomes the
+value of the variable whenever it is evaluated.
+</P>
+<P>Note that <I>equal</I> variables can produce different values at different
+stages of the input script or at different times during a run.
+</P>
+<P>The next command cannot be used with <I>equal</I> style variables, since
+there is only one string.
+</P>
+<P>The formula for an <I>equal</I> variable can contain a variety of
+quantities.  The syntax for each kind of quantity is simple, but
+multiple quantities can be nested and combined in various ways to
+build up formulas of arbitrary complexity.  For example, this is a
+valid (though strange) variable formula:
+</P>
+<PRE>variable x equal "2.0 + v_MyTemp / pow(v_Volume,1/3)" 
+</PRE>
+<P>Specifically, an formula can contain numbers, math operations, and
+references to other variables.
+</P>
+<DIV ALIGN=center><TABLE  BORDER=1 >
+<TR><TD >Number</TD><TD > 0.2, 100, 1.0e20, -15.4, etc</TD></TR>
+<TR><TD >Constants</TD><TD > PI</TD></TR>
+<TR><TD >Keywords</TD><TD > time, nglobal</TD></TR>
+<TR><TD >Math operations</TD><TD > (), -x, x+y, x-y, x*y, x/y, x^y, sqrt(x), exp(x), ln(x), log(x), sin(x), cos(x), tan(x), asin(x), acos(x), atan(x), ceil(x), floor(x), round(x)</TD></TR>
+<TR><TD >Other variables</TD><TD > v_abc, v_n 
+</TD></TR></TABLE></DIV>
+
+<P>The keywords currently allowed in a formula are <I>time</I> and <I>nglobal</I>.
+<I>Time</I> is the current simulation time.  <I>Nglobal</I> is the number of
+sites in the model.
+</P>
+<P>Math operations are written in the usual way, where the "x" and "y" in
+the examples above can be another section of the formula.  Operators
+are evaluated left to right and have the usual precedence: unary minus
+before exponentiation ("^"), exponentiation before multiplication and
+division, and multiplication and division before addition and
+subtraction.  Parenthesis can be used to group one or more portions of
+a formula and enforce a desired order of operations.  Additional math
+operations can be specified as keywords followed by a parenthesized
+argument, e.g. sqrt(v_ke).  Note that ln() is the natural log; log()
+is the base 10 log.  The ceil(), floor(), and round() operations are
+those in the C math library.  Ceil() is the smallest integer not less
+than its argument.  Floor() if the largest integer not greater than
+its argument.  Round() is the nearest integer to its argument.
+</P>
+<P>The current values of other variables can be accessed by prepending a
+"v_" to the variable name.  This will cause that variable to be
+evaluated.
+</P>
+<P>IMPORTANT NOTE: If you define variables in circular manner like this:
+</P>
+<PRE>variable a equal v_b
+variable b equal v_a
+print $a 
+</PRE>
+<P>then SPPARKS will run for a while when the print statement is invoked!
+</P>
+<P>Another way to reference a variable in a formula is using the $x form
+instead of v_x.  There is a subtle difference between the two
+references that has to do with when the evaluation of the included
+variable is done.
+</P>
+<P>Using a $x, the value of the include variable is substituted for
+immediately when the line is read from the input script, just as it
+would be in other input script command.  This could be the desired
+behavior if a static value is desired.  Or it could be the desired
+behavior for an equal-style variable if the variable command appears
+in a loop (see the <A HREF = "jump.html">jump</A> and <A HREF = "next.html">next</A> commands),
+since the substitution will be performed anew each time thru the loop
+as the command is re-read.  Note that if the variable formula is
+enclosed in double quotes, this prevents variable substitution and
+thus an error will be generated when the variable formula is
+evaluated.
+</P>
+<P>Using a v_x, the value of the included variable will not be accessed
+until the variable formula is evaluated.  Thus the value may change
+each time the evaluation is performed.  This may also be desired
+behavior.
+</P>
+<P>As an example, if the current simulation box volume is 1000.0, then
+these lines:
+</P>
+<PRE>variable x equal vol
+variable y equal 2*$x 
+</PRE>
+<P>will associate the equation string "2*1000.0" with variable y.
+</P>
+<P>By contrast, these lines:
+</P>
+<PRE>variable x equal vol
+variable y equal 2*v_x 
+</PRE>
+<P>will associate the equation string "2*v_x" with variable y.
+</P>
+<P>Thus if the variable y were evaluated periodically during a run where
+the box volume changed, the resulting value would always be 2000.0 for
+the first case, but would change dynamically for the second case.
+</P>
+<HR>
+
+<P><B>Restrictions:</B>
+</P>
+<P>All <I>universe</I>- and <I>uloop</I>-style variables defined in an input script
+must have the same number of values.
+</P>
+<P><B>Related commands:</B>
+</P>
+<P><A HREF = "next.html">next</A>, <A HREF = "jump.html">jump</A>, <A HREF = "include.html">include</A>,
+<A HREF = "print.html">print</A>
+</P>
+<P><B>Default:</B> none
+</P>
+</HTML>
