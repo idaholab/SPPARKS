@@ -994,7 +994,7 @@ void AppLattice::create_set(int iset, int isector, int icolor, Solve *oldsolve)
   // i2site = 0 to nsite-1 for owned points in set, else -1
 
   if (solve) {
-    (int *) memory->create(set[iset].i2site,nlocal+nghost,"app:i2site");
+    memory->create(set[iset].i2site,nlocal+nghost,"app:i2site");
     for (int i = 0; i < nlocal+nghost; i++) set[iset].i2site[i] = -1;
     for (int i = 0; i < set[iset].nlocal; i++) 
       set[iset].i2site[set[iset].site2i[i]] = i;

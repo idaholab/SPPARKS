@@ -233,7 +233,7 @@ void ReadSites::header()
     // trim anything from '#' onward
     // if line is blank, continue
 
-    if (ptr = strchr(line,'#')) *ptr = '\0';
+    if ((ptr = strchr(line,'#'))) *ptr = '\0';
     if (strspn(line," \t\n\r") == strlen(line)) continue;
 
     // search line for header keyword and set corresponding variable
@@ -656,7 +656,7 @@ void ReadSites::parse_keyword(int first)
 void ReadSites::parse_coeffs(int addflag, char *line)
 {
   char *ptr;
-  if (ptr = strchr(line,'#')) *ptr = '\0';
+  if ((ptr = strchr(line,'#'))) *ptr = '\0';
 
   narg = 0;
   char *word = strtok(line," \t\n\r\f");
@@ -685,7 +685,7 @@ int ReadSites::count_words(char *line)
   strcpy(copy,line);
 
   char *ptr;
-  if (ptr = strchr(copy,'#')) *ptr = '\0';
+  if ((ptr = strchr(copy,'#'))) *ptr = '\0';
 
   if (strtok(copy," \t\n\r\f") == NULL) {
     memory->sfree(copy);
