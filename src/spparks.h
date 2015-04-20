@@ -19,6 +19,8 @@
 
 namespace SPPARKS_NS {
 
+class Output;
+
 class SPPARKS {
  public:
   class Universe *universe;      // universe of processors

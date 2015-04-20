@@ -17,7 +17,6 @@
 #include "stdlib.h"
 #include "string.h"
 #include "solve_tree.h"
-#include "domain.h"
 #include "random_mars.h"
 #include "random_park.h"
 #include "memory.h"
@@ -32,12 +31,7 @@ SolveTree::SolveTree(SPPARKS *spk, int narg, char **arg) :
 {
   if (narg != 1) error->all(FLERR,"Illegal solve command");
 
-  // each proc uses different initial RNG seed
-
   random = new RandomPark(ranmaster->uniform());
-  double seed = ranmaster->uniform();
-  random->reset(seed,spk->domain->me,100);
-
   tree = NULL;
 }
 

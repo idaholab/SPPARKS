@@ -5,7 +5,7 @@
 
    Copyright (2008) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
-   certain rights in this software.  This software is distributed under 
+   certain rights in this software.  This software is distributed under
    the GNU General Public License.
 
    See the README file in the top-level SPPARKS directory.
@@ -61,7 +61,7 @@ Output::~Output()
 
 /* ---------------------------------------------------------------------- */
 
-void Output::init(double time)
+void Output::init(double /*time*/)
 {
   for (int i = 0; i < ndump; i++) dumplist[i]->init();
   for (int i = 0; i < ndiag; i++) diaglist[i]->init();
@@ -85,7 +85,7 @@ double Output::setup(double time, int memflag)
   for (int i = 0; i < ndump; i++) {
     if (dumplist[i]->idump == 0 && time >= dumplist[i]->delay)
       dumplist[i]->write(time);
-    dumplist[i]->next_time = 
+    dumplist[i]->next_time =
       next_time(time,dumplist[i]->logfreq,dumplist[i]->delta,
 		dumplist[i]->nrepeat,dumplist[i]->scale,dumplist[i]->delay);
     dump_time = MIN(dump_time,dumplist[i]->next_time);
@@ -97,7 +97,7 @@ double Output::setup(double time, int memflag)
   double diag_time = app->stoptime;
   for (int i = 0; i < ndiag; i++) {
     if  (diaglist[i]->stats_flag) diaglist[i]->compute();
-    diaglist[i]->next_time = 
+    diaglist[i]->next_time =
       next_time(time,diaglist[i]->logfreq,diaglist[i]->delta,
 		diaglist[i]->nrepeat,diaglist[i]->scale,diaglist[i]->delay);
     diag_time = MIN(diag_time,diaglist[i]->next_time);
@@ -140,7 +140,7 @@ double Output::compute(double time, int done)
   for (int i = 0; i < ndump; i++) {
     if (time >= dumplist[i]->next_time) {
       dumplist[i]->write(time);
-      dumplist[i]->next_time = 
+      dumplist[i]->next_time =
 	next_time(time,dumplist[i]->logfreq,dumplist[i]->delta,
 		  dumplist[i]->nrepeat,dumplist[i]->scale,dumplist[i]->delay);
       dump_time = MIN(dump_time,dumplist[i]->next_time);
@@ -151,22 +151,22 @@ double Output::compute(double time, int done)
 
   int sflag = 0;
   if (time >= stats_time || done) sflag = 1;
-  
+
   // diagnostic output, which may be driven by stats output
-  
+
   double diag_time = app->stoptime;
   for (int i = 0; i < ndiag; i++) {
     if (diaglist[i]->stats_flag) {
       if (sflag) diaglist[i]->compute();
     } else if (time >= diaglist[i]->next_time) {
       diaglist[i]->compute();
-      diaglist[i]->next_time = 
+      diaglist[i]->next_time =
 	next_time(time,diaglist[i]->logfreq,diaglist[i]->delta,
 		  diaglist[i]->nrepeat,diaglist[i]->scale,diaglist[i]->delay);
       diag_time = MIN(diag_time,diaglist[i]->next_time);
     } else diag_time = MIN(diag_time,diaglist[i]->next_time);
   }
-  
+
   // stats output, after diagnostics compute any needed quantities
 
   if (sflag) {
@@ -232,7 +232,7 @@ void Output::add_dump(int narg, char **arg)
   if (narg < 2) error->all(FLERR,"Illegal dump command");
 
   for (int i = 0; i < ndump; i++)
-    if (strcmp(dumplist[i]->id,arg[0]) == 0) 
+    if (strcmp(dumplist[i]->id,arg[0]) == 0)
       error->all(FLERR,"Reuse of dump ID");
 
   // extend Dump list if necessary
@@ -270,7 +270,7 @@ void Output::dump_one(int narg, char **arg)
   int i;
   for (i = 0; i < ndump; i++)
     if (strcmp(dumplist[i]->id,arg[0]) == 0) break;
-  if (i == ndump) 
+  if (i == ndump)
     error->all(FLERR,"Could not find dump ID in dump_one command");
 
   if (dumplist[i]->idump == 0)
@@ -288,7 +288,7 @@ void Output::dump_modify(int narg, char **arg)
   int i;
   for (i = 0; i < ndump; i++)
     if (strcmp(dumplist[i]->id,arg[0]) == 0) break;
-  if (i == ndump) 
+  if (i == ndump)
     error->all(FLERR,"Could not find dump ID in dump_modify command");
 
   dumplist[i]->modify_params(narg-1,&arg[1]);
@@ -392,10 +392,10 @@ void Output::stats_header()
    return tnew = next time at which output should be done
 ------------------------------------------------------------------------- */
 
-double Output::next_time(double tcurrent, int logfreq, double delta, 
+double Output::next_time(double tcurrent, int logfreq, double delta,
 			 int nrepeat, double scale, double delay)
 {
-  double tnew;
+  double tnew = 0.0;
 
   if (logfreq == 0) {
     tnew = ceil(tcurrent/delta) * delta;

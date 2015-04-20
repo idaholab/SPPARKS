@@ -182,7 +182,7 @@ void AppDiffusion::input_app(char *command, int narg, char **arg)
     if (narg < 1) error->all(FLERR,"Illegal barrier command");
     barrierflag = 1;
 
-    double **barrier;
+    double **barrier = NULL;
     if (strcmp(arg[0],"none") == 0) {
       if (narg != 1) error->all(FLERR,"Illegal barrier command");
       barrierflag = 0;

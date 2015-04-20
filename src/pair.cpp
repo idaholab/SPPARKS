@@ -69,7 +69,7 @@ void Pair::init()
 
 double Pair::mix_energy(double eps1, double eps2, double sig1, double sig2)
 {
-  double value;
+  double value = 0.0;
   if (mix_flag == GEOMETRIC)
     value = sqrt(eps1*eps2);
   else if (mix_flag == ARITHMETIC)
@@ -86,7 +86,7 @@ double Pair::mix_energy(double eps1, double eps2, double sig1, double sig2)
 
 double Pair::mix_distance(double sig1, double sig2)
 {
-  double value;
+  double value = 0.0;
   if (mix_flag == GEOMETRIC)
     value = sqrt(sig1*sig2);
   else if (mix_flag == ARITHMETIC)

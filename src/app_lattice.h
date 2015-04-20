@@ -72,6 +72,12 @@ class AppLattice : public App {
 
   virtual void app_update(double) {}
 
+  virtual void check_reaction() {} //yongfeng
+  virtual void check_ballistic(double) {} //yongfeng
+  virtual double real_time(double) {} //yongfeng
+  virtual void time_tracer(double) {} //yongfeng
+  virtual void concentration_field() {} //yongfeng
+
  protected:
   int me,nprocs;
 
@@ -88,6 +94,10 @@ class AppLattice : public App {
   int allow_masking;           // 1 if app supports rKMC masking
   int allow_app_update;        // 1 if app provides app_update()
   int numrandom;               // # of RN used by rejection routine
+  int reaction_flag;           // 1 if app supports reactions  
+  int ballistic_flag;          // 1 if app supports ballistic mixing  
+  int time_flag;               // flag for time tracer by monomers 
+  int concentrationflag;       // flag for concentration field calculation  
 
   int sweepflag;               // set if rejection KMC solver
   int sectorflag;              // 1 if partition my domain into sectors

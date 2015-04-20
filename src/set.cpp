@@ -5,7 +5,7 @@
 
    Copyright (2008) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
-   certain rights in this software.  This software is distributed under 
+   certain rights in this software.  This software is distributed under
    the GNU General Public License.
 
    See the README file in the top-level SPPARKS directory.
@@ -106,9 +106,10 @@ void Set::command(int narg, char **arg)
     dvalue = atof(arg[2]);
     iarg = 3;
   } else error->all(FLERR,"Illegal set command");
-    
+
   // parse optional args
 
+  number = 0; //YF
   fraction = 1.0;
   regionflag = 0;
   loopflag = 1;
@@ -119,8 +120,12 @@ void Set::command(int narg, char **arg)
     if (strcmp(arg[iarg],"fraction") == 0) {
       if (iarg+2 > narg) error->all(FLERR,"Illegal set command");
       fraction = atof(arg[iarg+1]);
-      if (fraction <= 0.0 || fraction > 1.0) 
-        error->all(FLERR,"Illegal set command");
+      if (fraction <= 0.0 || fraction > 1.0) error->all(FLERR,"Illegal set command");
+      iarg += 2;
+    } else if (strcmp(arg[iarg],"number") == 0) {
+      if (iarg+2 > narg) error->all(FLERR,"Illegal set command");
+      number = atoi(arg[iarg+1]);
+      if (number <= 0) error->all(FLERR,"Illegal set command");
       iarg += 2;
     } else if (strcmp(arg[iarg],"region") == 0) {
       if (iarg+2 > narg) error->all(FLERR,"Illegal set command");
@@ -159,8 +164,7 @@ void Set::command(int narg, char **arg)
       } else if (arg[iarg+1][0] == 'i') {
 	int index = atoi(&arg[iarg+1][1]);
 	if (index < 1 || index > app->ninteger)
-	  error->all(FLERR,
-                     "Set if test on quantity application does not support");
+	  error->all(FLERR,"Set if test on quantity application does not support");
 	index--;
 	cond[ncondition].lhs = IARRAY;
 	cond[ncondition].type = INT;
@@ -169,8 +173,7 @@ void Set::command(int narg, char **arg)
       } else if (arg[iarg+1][0] == 'd') {
 	int index = atoi(&arg[iarg+1][1]);
 	if (index < 1 || index > app->ndouble)
-	  error->all(FLERR,
-                     "Set if test on quantity application does not support");
+	  error->all(FLERR,"Set if test on quantity application does not support");
 	index--;
 	cond[ncondition].lhs = DARRAY;
 	cond[ncondition].type = DOUBLE;
@@ -196,6 +199,7 @@ void Set::command(int narg, char **arg)
     } else error->all(FLERR,"Illegal set command");
   }
 
+  if (number > 0 && fraction < 1.0) error->all(FLERR,"no combined use of number and fraction, set command");
   if (domain->me == 0 && screen) fprintf(screen,"Setting site values ...\n");
 
   if (rhs == VALUE) set_single(lhs,rhs);
@@ -208,7 +212,7 @@ void Set::command(int narg, char **arg)
   tagint nbig = count;
   tagint allcount;
   MPI_Allreduce(&nbig,&allcount,1,MPI_SPK_TAGINT,MPI_SUM,world);
-    
+
   if (domain->me == 0) {
     if (screen) fprintf(screen,"  " TAGINT_FORMAT " settings made for %s\n",
 			allcount,arg[0]);
@@ -222,12 +226,12 @@ void Set::command(int narg, char **arg)
 /* ----------------------------------------------------------------------
    set sites to a single value
    ivalue for VALUE, site ID for UNIQUE
-   account for loop, region, fraction, condition options
+   account for loop, region, fraction,number, condition options
 ------------------------------------------------------------------------- */
 
 void Set::set_single(int lhs, int rhs)
 {
-  int i;
+  int i, itry;
   tagint iglobal;
 
   int nlocal = app->nlocal;
@@ -256,7 +260,33 @@ void Set::set_single(int lhs, int rhs)
     for (i = 0; i < nlocal; i++) hash.insert(std::pair<tagint,int> (id[i],i));
 
     if (lhs == IARRAY) {
-      if (regionflag == 0 && fraction == 1.0) {
+      if (regionflag == 0 && number > 0) {
+        while (count < number) {  // each proc makes "number" of changes, YF
+	  iglobal = int(maxID*random->uniform());
+          if(iglobal >= maxID) continue;
+	  loc = hash.find(iglobal);
+	  if (loc == hash.end()) continue;
+	  i = loc->second;
+	  if (ncondition && condition(i)) continue;
+	  if (rhs == VALUE) iarray[siteindex][i] = ivalue;
+	  else iarray[siteindex][i] = id[i] % MAXSMALLINT;
+	  count++;
+        }
+      } else if (regionflag && number > 0) {
+        while(count < number) {
+	  iglobal = int(maxID*random->uniform());
+          if(iglobal >= maxID) continue;
+	  loc = hash.find(iglobal);
+	  if (loc == hash.end()) continue;
+	  i = loc->second;
+	  if (domain->regions[iregion]->match(xyz[i][0],xyz[i][1],xyz[i][2])) {
+	    if (ncondition && condition(i)) continue;
+	    if (rhs == VALUE) iarray[siteindex][i] = ivalue;
+	    else iarray[siteindex][i] = id[i] % MAXSMALLINT;
+	    count++;
+	  }
+        }
+      } else if (regionflag == 0 && fraction == 1.0) {
 	for (i = 0; i < nlocal; i++) {
 	  if (ncondition && condition(i)) continue;
 	  if (rhs == VALUE) iarray[siteindex][i] = ivalue;
@@ -298,7 +328,33 @@ void Set::set_single(int lhs, int rhs)
       }
 
     } else if (lhs == DARRAY) {
-      if (regionflag == 0 && fraction == 1.0) {
+      if (regionflag == 0 && number > 0) {
+        while(count < number) {
+	  iglobal = int(maxID*random->uniform());
+          if(iglobal >= maxID) continue;
+	  loc = hash.find(iglobal);
+	  if (loc == hash.end()) continue;
+	  i = loc->second;
+	  if (ncondition && condition(i)) continue;
+	  if (rhs == VALUE) darray[siteindex][i] = dvalue;
+	  else darray[siteindex][i] = id[i] % MAXSMALLINT;
+	  count++;
+        }
+      } else if (regionflag && number > 0) {
+        while(count < number) {
+	  iglobal = int(maxID*random->uniform());
+          if(iglobal >= maxID) continue;
+	  loc = hash.find(iglobal);
+	  if (loc == hash.end()) continue;
+	  i = loc->second;
+	  if (domain->regions[iregion]->match(xyz[i][0],xyz[i][1],xyz[i][2])) {
+	    if (ncondition && condition(i)) continue;
+	    if (rhs == VALUE) darray[siteindex][i] = dvalue;
+	    else darray[siteindex][i] = id[i] % MAXSMALLINT;
+	    count++;
+	  }
+        }
+      } else if (regionflag == 0 && fraction == 1.0) {
 	for (i = 0; i < nlocal; i++) {
 	  if (ncondition && condition(i)) continue;
 	  if (rhs == VALUE) darray[siteindex][i] = dvalue;
@@ -342,7 +398,27 @@ void Set::set_single(int lhs, int rhs)
 
   } else {
     if (lhs == IARRAY) {
-      if (regionflag == 0 && fraction == 1.0) {
+      if (regionflag == 0 && number > 0) {
+        while (count < number ) {
+          itry = int(nlocal*random->uniform());
+          if(itry >= nlocal) continue;
+	  if (ncondition && condition(itry)) continue;
+	  if (rhs == VALUE) iarray[siteindex][itry] = ivalue;
+	  else iarray[siteindex][itry] = id[itry] % MAXSMALLINT;
+	  count++;
+        }
+      } else if (regionflag && number > 0) {
+        while (count < number ) {
+          itry = int(nlocal*random->uniform());
+          if(itry >= nlocal) continue;
+	  if (domain->regions[iregion]->match(xyz[itry][0],xyz[itry][1],xyz[itry][2])) {
+	    if (ncondition && condition(itry)) continue;
+	    if (rhs == VALUE) iarray[siteindex][itry] = ivalue;
+	    else iarray[siteindex][itry] = id[itry] % MAXSMALLINT;
+	    count++;
+          }
+        }
+      } else if (regionflag == 0 && fraction == 1.0) {
 	for (i = 0; i < nlocal; i++) {
 	  if (ncondition && condition(i)) continue;
 	  if (rhs == VALUE) iarray[siteindex][i] = ivalue;
@@ -377,7 +453,27 @@ void Set::set_single(int lhs, int rhs)
       }
 
     } else if (lhs == DARRAY) {
-      if (regionflag == 0 && fraction == 1.0) {
+      if (regionflag == 0 && number > 0) {
+        while (count < number ) {
+          itry = int(nlocal*random->uniform());
+          if(itry >= nlocal) continue;
+	  if (ncondition && condition(itry)) continue;
+	  if (rhs == VALUE) darray[siteindex][itry] = dvalue;
+	  else darray[siteindex][itry] = id[itry] % MAXSMALLINT;
+	  count++;
+        }
+      } else if (regionflag && number > 0) {
+        while (count < number ) {
+          itry = int(nlocal*random->uniform());
+          if(itry >= nlocal) continue;
+	  if (domain->regions[iregion]->match(xyz[itry][0],xyz[itry][1],xyz[itry][2])) {
+	    if (ncondition && condition(itry)) continue;
+	    if (rhs == VALUE) darray[siteindex][itry] = dvalue;
+	    else darray[siteindex][itry] = id[itry] % MAXSMALLINT;
+	    count++;
+          }
+        }
+      } else if (regionflag == 0 && fraction == 1.0) {
 	for (i = 0; i < nlocal; i++) {
 	  if (ncondition && condition(i)) continue;
 	  if (rhs == VALUE) darray[siteindex][i] = ivalue;
@@ -412,7 +508,6 @@ void Set::set_single(int lhs, int rhs)
       }
     }
   }
-
   delete random;
 }
 
@@ -423,7 +518,7 @@ void Set::set_single(int lhs, int rhs)
 
 void Set::set_range(int lhs, int rhs)
 {
-  int i;
+  int i, itry;
   tagint iglobal;
 
   int nlocal = app->nlocal;
@@ -454,8 +549,33 @@ void Set::set_range(int lhs, int rhs)
     if (lhs == IARRAY) {
       int range = ivaluehi - ivaluelo + 1;
 
-      if (regionflag == 0 && fraction == 1.0) {
-	for (iglobal = minID; iglobal <= maxID; iglobal++) {
+      if (regionflag == 0 && number > 0) {
+        while (count < number) {  // each proc makes "number" of changes, YF
+          ivalue = random->irandom(range);
+	  iglobal = int(maxID*random->uniform());
+          if(iglobal >= maxID) continue;
+	  loc = hash.find(iglobal);
+	  if (loc == hash.end()) continue;
+	  i = loc->second;
+	  if (ncondition && condition(i)) continue;
+	  iarray[siteindex][i] = ivalue-1+ivaluelo;
+	  count++;
+        }
+      } else if (regionflag && number > 0) {
+        while (count < number) {
+	  ivalue = random->irandom(range);
+	  iglobal = int(maxID*random->uniform());
+	  loc = hash.find(iglobal);
+	  if (loc == hash.end()) continue;
+	  i = loc->second;
+	  if (domain->regions[iregion]->match(xyz[i][0],xyz[i][1],xyz[i][2])) {
+	    if (ncondition && condition(i)) continue;
+	    iarray[siteindex][i] = ivalue-1 + ivaluelo;
+	    count++;
+	  }
+	}
+      } else if (regionflag == 0 && fraction == 1.0) {
+	for (iglobal = 1; iglobal <= maxID; iglobal++) {
 	  ivalue = random->irandom(range);
 	  loc = hash.find(iglobal);
 	  if (loc == hash.end()) continue;
@@ -505,8 +625,33 @@ void Set::set_range(int lhs, int rhs)
     } else if (lhs == DARRAY) {
       double range = dvaluehi - dvaluelo;
 
-      if (regionflag == 0 && fraction == 1.0) {
-	for (iglobal = minID; iglobal <= maxID; iglobal++) {
+      if (regionflag == 0 && number > 0) {
+        while (count < number) {  // each proc makes "number" of changes, YF
+          dvalue = random->uniform();
+	  iglobal = int(maxID*random->uniform());
+          if(iglobal >= maxID) continue;
+	  loc = hash.find(iglobal);
+	  if (loc == hash.end()) continue;
+	  i = loc->second;
+	  if (ncondition && condition(i)) continue;
+	  darray[siteindex][i] = range*dvalue + dvaluelo;
+	  count++;
+        }
+      } else if (regionflag && number > 0) {
+        while (count < number) {
+	  dvalue = random->uniform();
+	  iglobal = int(maxID*random->uniform());
+	  loc = hash.find(iglobal);
+	  if (loc == hash.end()) continue;
+	  i = loc->second;
+	  if (domain->regions[iregion]->match(xyz[i][0],xyz[i][1],xyz[i][2])) {
+	    if (ncondition && condition(i)) continue;
+	    darray[siteindex][i] = range*dvalue + dvaluelo;
+	    count++;
+	  }
+	}
+      } else if (regionflag == 0 && fraction == 1.0) {
+	for (iglobal = 1; iglobal <= maxID; iglobal++) {
 	  dvalue = random->uniform();
 	  loc = hash.find(iglobal);
 	  if (loc == hash.end()) continue;
@@ -557,8 +702,25 @@ void Set::set_range(int lhs, int rhs)
   } else {
     if (lhs == IARRAY) {
       int range = ivaluehi - ivaluelo + 1;
-
-      if (regionflag == 0 && fraction == 1.0) {
+      if (regionflag == 0 && number >0) {
+        while (count < number) {
+          itry = int(nlocal*random->uniform());
+          if(itry >= nlocal) continue;
+	  if (domain->regions[iregion]->match(xyz[itry][0],xyz[itry][1],xyz[itry][2])) {
+	    if (ncondition && condition(itry)) continue;
+	    iarray[siteindex][i] = random->irandom(range)-1 + ivaluelo;
+	    count++;
+          }
+        }
+      } else if (regionflag && number >0) {
+        while (count < number) {
+          itry = int(nlocal*random->uniform());
+          if(itry >= nlocal) continue;
+	  if (ncondition && condition(itry)) continue;
+	  iarray[siteindex][i] = random->irandom(range)-1 + ivaluelo;
+	  count++;
+        }
+      } else if (regionflag == 0 && fraction == 1.0) {
 	for (i = 0; i < nlocal; i++) {
 	  if (ncondition && condition(i)) continue;
 	  iarray[siteindex][i] = random->irandom(range)-1 + ivaluelo;
@@ -591,7 +753,25 @@ void Set::set_range(int lhs, int rhs)
     } else if (lhs == DARRAY) {
       double range = dvaluehi - dvaluelo;
 
-      if (regionflag == 0 && fraction == 1.0) {
+      if (regionflag == 0 && number >0) {
+        while (count < number) {
+          itry = int(nlocal*random->uniform());
+          if(itry >= nlocal) continue;
+	  if (domain->regions[iregion]->match(xyz[itry][0],xyz[itry][1],xyz[itry][2])) {
+	    if (ncondition && condition(itry)) continue;
+	    darray[siteindex][i] = range*random->uniform() + dvaluelo;
+	    count++;
+          }
+        }
+      } else if (regionflag && number >0) {
+        while (count < number) {
+          itry = int(nlocal*random->uniform());
+          if(itry >= nlocal) continue;
+	  if (ncondition && condition(itry)) continue;
+	  darray[siteindex][i] = range*random->uniform() + dvaluelo;
+	  count++;
+        }
+      } else if (regionflag == 0 && fraction == 1.0) {
 	for (i = 0; i < nlocal; i++) {
 	  if (ncondition && condition(i)) continue;
 	  darray[siteindex][i] = range*random->uniform() + dvaluelo;

@@ -64,7 +64,7 @@ Dump::Dump(SPPARKS *spk, int narg, char **arg) : Pointers(spk)
   multiproc = 0;
 
   char *ptr;
-  if (ptr = strchr(filename,'%')) {
+  if ((ptr = strchr(filename,'%'))) {
     multiproc = 1;
     char *extend = new char[strlen(filename) + 16];
     *ptr = '\0';

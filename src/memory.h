@@ -14,6 +14,14 @@
 #ifndef SPK_MEMORY_H
 #define SPK_MEMORY_H
 
+/**
+ * This header has tons of unused variable warnings.  Let's ignore those...
+ */
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-parameter"
+#endif
+
 #include "pointers.h"
 
 namespace SPPARKS_NS {
@@ -399,7 +407,7 @@ class Memory : protected Pointers {
       array = (TYPE ****) smalloc(nbytes,name);
       
       int i,j,k;
-      bigint m1,m2,m3;
+      bigint m1,m2;
       bigint n = 0;
       for (i = 0; i < n1; i++) {
 	m2 = ((bigint) i) * n2;
@@ -477,6 +485,13 @@ class Memory : protected Pointers {
 };
 
 }
+
+/**
+ * Turn warnings back on.
+ */
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
 #endif
 

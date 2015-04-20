@@ -5,7 +5,7 @@
 
    Copyright (2008) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
-   certain rights in this software.  This software is distributed under 
+   certain rights in this software.  This software is distributed under
    the GNU General Public License.
 
    See the README file in the top-level SPPARKS directory.
@@ -99,7 +99,7 @@ Image::Image(SPPARKS *spk) : Pointers(spk)
   keyLightColor[2] = 0.9;
 
   fillLightPhi = MY_PI/6.0;     // 30 degrees
-  fillLightTheta = 0; 
+  fillLightTheta = 0;
   fillLightColor[0] = 0.45;
   fillLightColor[1] = 0.45;
   fillLightColor[2] = 0.45;
@@ -135,7 +135,7 @@ Image::~Image()
   memory->destroy(surfacecopy);
   memory->destroy(rgbcopy);
 
-  delete random; 
+  delete random;
 }
 
 /* ----------------------------------------------------------------------
@@ -258,7 +258,7 @@ void Image::view_params(double boxxlo, double boxxhi, double boxylo,
     ambientColor[1] = 0.5;
     ambientColor[2] = 0.5;
   }
-  
+
   // param for rasterizing spheres
 
   tanPerPixel = -(maxdel / (double) height);
@@ -360,7 +360,7 @@ void Image::merge()
       else MPI_Waitall(2,requests,statuses);
 
       for (int i = 0; i < npixels; i++) {
-        if (depthBuffer[i] < 0 || (depthcopy[i] >= 0 && 
+        if (depthBuffer[i] < 0 || (depthcopy[i] >= 0 &&
 				   depthcopy[i] < depthBuffer[i])) {
           depthBuffer[i] = depthcopy[i];
           imageBuffer[i*3+0] = rgbcopy[i*3+0];
@@ -455,7 +455,7 @@ void Image::draw_sphere(double *x, double *surfaceColor, double diameter)
 
   double radius = 0.5*diameter;
   double radsq = radius*radius;
-  double pixelWidth = (tanPerPixel > 0) ? tanPerPixel * dist : 
+  double pixelWidth = (tanPerPixel > 0) ? tanPerPixel * dist :
     -tanPerPixel / zoom;
   double pixelRadiusFull = radius / pixelWidth;
   int pixelRadius = static_cast<int> (pixelRadiusFull + 0.5) + 1;
@@ -479,9 +479,9 @@ void Image::draw_sphere(double *x, double *surfaceColor, double diameter)
       surface[1] = ((iy - yc) - height_error) * pixelWidth;
       surface[0] = ((ix - xc) - width_error) * pixelWidth;
       projRad = surface[0]*surface[0] + surface[1]*surface[1];
-      
+
       // outside the sphere in the projected image
-      
+
       if (projRad > radsq) continue;
       surface[2] = sqrt(radsq - projRad);
       depth = dist - surface[2];
@@ -515,7 +515,7 @@ void Image::draw_cube(double *x, double *surfaceColor, double diameter)
   double dist = MathExtra::dot3(camPos,camDir) - MathExtra::dot3(xlocal,camDir);
 
   double radius = 0.5*diameter;
-  double pixelWidth = (tanPerPixel > 0) ? tanPerPixel * dist : 
+  double pixelWidth = (tanPerPixel > 0) ? tanPerPixel * dist :
     -tanPerPixel / zoom;
 
   double halfWidth = diameter;
@@ -537,7 +537,7 @@ void Image::draw_cube(double *x, double *surfaceColor, double diameter)
   for (int iy = yc - pixelHalfWidth; iy <= yc + pixelHalfWidth; iy ++) {
     for (int ix = xc - pixelHalfWidth; ix <= xc + pixelHalfWidth; ix ++) {
       if (iy < 0 || iy >= height || ix < 0 || ix >= width) continue;
-      
+
       double sy = ((iy - yc) - height_error) * pixelWidth;
       double sx = ((ix - xc) - width_error) * pixelWidth;
       surface[0] = camRight[0] * sx + camUp[0] * sy;
@@ -565,11 +565,11 @@ void Image::draw_cube(double *x, double *surfaceColor, double diameter)
           tdir[1] = camDir[1] * t;
           tdir[2] = camDir[2] * t;
 
-          bool xin = ((surface[0]+tdir[0]) >= -radius) && 
+          bool xin = ((surface[0]+tdir[0]) >= -radius) &&
 	    ((surface[0]+tdir[0]) <= radius);
-          bool yin = ((surface[1]+tdir[1]) >= -radius) && 
+          bool yin = ((surface[1]+tdir[1]) >= -radius) &&
 	    ((surface[1]+tdir[1]) <= radius);
-          bool zin = ((surface[2]+tdir[2]) >= -radius) && 
+          bool zin = ((surface[2]+tdir[2]) >= -radius) &&
 	    ((surface[2]+tdir[2]) <= radius);
 
           switch (dim) {
@@ -642,7 +642,7 @@ void Image::draw_cylinder(double *x, double *y,
   double ymap = MathExtra::dot3(camUp,mid);
   double dist = MathExtra::dot3(camPos,camDir) - MathExtra::dot3(mid,camDir);
 
-  double pixelWidth = (tanPerPixel > 0) ? tanPerPixel * dist : 
+  double pixelWidth = (tanPerPixel > 0) ? tanPerPixel * dist :
     -tanPerPixel / zoom;
 
   double xf = xmap / pixelWidth;
@@ -664,7 +664,7 @@ void Image::draw_cylinder(double *x, double *y,
 
   if (zaxis[0] == camDir[0] && zaxis[1] == camDir[1] && zaxis[2] == camDir[2])
     return;
-  if (zaxis[0] == -camDir[0] && zaxis[1] == -camDir[1] && 
+  if (zaxis[0] == -camDir[0] && zaxis[1] == -camDir[1] &&
       zaxis[2] == -camDir[2]) return;
 
   MathExtra::cross3(zaxis,camDir,yaxis);
@@ -691,7 +691,7 @@ void Image::draw_cylinder(double *x, double *y,
   for (int iy = yc - pixelHalfHeight; iy <= yc + pixelHalfHeight; iy ++) {
     for (int ix = xc - pixelHalfWidth; ix <= xc + pixelHalfWidth; ix ++) {
       if (iy < 0 || iy >= height || ix < 0 || ix >= width) continue;
-      
+
       double sy = ((iy - yc) - height_error) * pixelWidth;
       double sx = ((ix - xc) - width_error) * pixelWidth;
       surface[0] = camLRight[0] * sx + camLUp[0] * sy;
@@ -721,7 +721,7 @@ void Image::draw_cylinder(double *x, double *y,
       normal[1] = surface[1] / radius;
       normal[2] = 0.0;
 
-      // in camera space 
+      // in camera space
 
       surface[0] = MathExtra::dot3 (normal, camLRight);
       surface[1] = MathExtra::dot3 (normal, camLUp);
@@ -741,7 +741,7 @@ void Image::draw_triangle(double *x, double *y, double *z, double *surfaceColor)
 {
   double d1[3], d1len, d2[3], d2len, normal[3], invndotd;
   double xlocal[3], ylocal[3], zlocal[3];
-  double center[3], bounds[6];
+  double center[3];
   double surface[3];
   double depth;
 
@@ -793,7 +793,7 @@ void Image::draw_triangle(double *x, double *y, double *z, double *surfaceColor)
   double ymap = MathExtra::dot3(camUp,xlocal);
   double dist = MathExtra::dot3(camPos,camDir) - MathExtra::dot3(xlocal,camDir);
 
-  double pixelWidth = (tanPerPixel > 0) ? tanPerPixel * dist : 
+  double pixelWidth = (tanPerPixel > 0) ? tanPerPixel * dist :
     -tanPerPixel / zoom;
 
   double xf = xmap / pixelWidth;
@@ -873,50 +873,50 @@ void Image::draw_triangle(double *x, double *y, double *z, double *surfaceColor)
 
 /* ---------------------------------------------------------------------- */
 
-void Image::draw_pixel(int ix, int iy, double depth, 
+void Image::draw_pixel(int ix, int iy, double depth,
 			   double *surface, double *surfaceColor)
 {
   double diffuseKey,diffuseFill,diffuseBack,specularKey;
-  if (depth < 0 || (depthBuffer[ix + iy*width] >= 0 && 
+  if (depth < 0 || (depthBuffer[ix + iy*width] >= 0 &&
 		    depth >= depthBuffer[ix + iy*width])) return;
   depthBuffer[ix + iy*width] = depth;
-      
+
   // store only the tangent relative to the camera normal (0,0,-1)
 
   surfaceBuffer[0 + ix * 2 + iy*width * 2] = surface[1];
   surfaceBuffer[1 + ix * 2 + iy*width * 2] = -surface[0];
-      
+
   diffuseKey = saturate(MathExtra::dot3(surface, keyLightDir));
   diffuseFill = saturate(MathExtra::dot3(surface, fillLightDir));
   diffuseBack = saturate(MathExtra::dot3(surface, backLightDir));
   specularKey = pow(saturate(MathExtra::dot3(surface, keyHalfDir)),
 		    specularHardness) * specularIntensity;
-  
+
   double c[3];
   c[0] = surfaceColor[0] * ambientColor[0];
   c[1] = surfaceColor[1] * ambientColor[1];
   c[2] = surfaceColor[2] * ambientColor[2];
-      
+
   c[0] += surfaceColor[0] * keyLightColor[0] * diffuseKey;
   c[1] += surfaceColor[1] * keyLightColor[1] * diffuseKey;
   c[2] += surfaceColor[2] * keyLightColor[2] * diffuseKey;
-  
+
   c[0] += keyLightColor[0] * specularKey;
   c[1] += keyLightColor[1] * specularKey;
   c[2] += keyLightColor[2] * specularKey;
-      
+
   c[0] += surfaceColor[0] * fillLightColor[0] * diffuseFill;
   c[1] += surfaceColor[1] * fillLightColor[1] * diffuseFill;
   c[2] += surfaceColor[2] * fillLightColor[2] * diffuseFill;
-      
+
   c[0] += surfaceColor[0] * backLightColor[0] * diffuseBack;
   c[1] += surfaceColor[1] * backLightColor[1] * diffuseBack;
   c[2] += surfaceColor[2] * backLightColor[2] * diffuseBack;
-      
+
   c[0] = saturate(c[0]);
   c[1] = saturate(c[1]);
   c[2] = saturate(c[2]);
-      
+
   imageBuffer[0 + ix*3 + iy*width*3] = static_cast<int>(c[0] * 255.0);
   imageBuffer[1 + ix*3 + iy*width*3] = static_cast<int>(c[1] * 255.0);
   imageBuffer[2 + ix*3 + iy*width*3] = static_cast<int>(c[2] * 255.0);
@@ -932,7 +932,7 @@ void Image::compute_SSAO()
 
   // typical neighborhood value for shading
 
-  double pixelWidth = (tanPerPixel > 0) ? tanPerPixel : 
+  double pixelWidth = (tanPerPixel > 0) ? tanPerPixel :
 	-tanPerPixel / zoom;
   int pixelRadius = (int) trunc (SSAORadius / pixelWidth + 0.5);
 
@@ -969,7 +969,7 @@ void Image::compute_SSAO()
         if (ex < 0) { ex = 0; } if (ex >= width) { ex = width - 1; }
         int ey = y + dy;
         if (ey < 0) { ey = 0; } if (ey >= height) { ey = height - 1; }
-        double delta; 
+        double delta;
         int small, large;
         double lenIncr;
         if (fabs(hx) > fabs(hy)) {
@@ -1005,7 +1005,7 @@ void Image::compute_SSAO()
 
           // cdepth - depthBuffer B/C we want it in the negative z direction
 
-          if (minPeak < 0 || (depthBuffer[ind] >= 0 && 
+          if (minPeak < 0 || (depthBuffer[ind] >= 0 &&
 			      depthBuffer[ind] < minPeak)) {
             minPeak = depthBuffer[ind];
             peakLen = len;
@@ -1028,7 +1028,7 @@ void Image::compute_SSAO()
         }
       }
       ao /= (double)SSAOSamples;
-      
+
       double c[3];
       c[0] = (double) (*(unsigned char *) &imageBuffer[index * 3 + 0]);
       c[1] = (double) (*(unsigned char *) &imageBuffer[index * 3 + 1]);
@@ -1045,7 +1045,7 @@ void Image::compute_SSAO()
 
 /* ---------------------------------------------------------------------- */
 
-void Image::write_JPG(FILE *fp) 
+void Image::write_JPG(FILE * fp)
 {
 #ifdef SPPARKS_JPEG
   struct jpeg_compress_struct cinfo;
@@ -1065,7 +1065,7 @@ void Image::write_JPG(FILE *fp)
   jpeg_start_compress(&cinfo,true);
 
   while (cinfo.next_scanline < cinfo.image_height) {
-    row_pointer = (JSAMPROW) 
+    row_pointer = (JSAMPROW)
       &writeBuffer[(cinfo.image_height - 1 - cinfo.next_scanline) * 3 * width];
     jpeg_write_scanlines(&cinfo,&row_pointer,1);
   }
@@ -1077,7 +1077,7 @@ void Image::write_JPG(FILE *fp)
 
 /* ---------------------------------------------------------------------- */
 
-void Image::write_PPM(FILE *fp) 
+void Image::write_PPM(FILE *fp)
 {
   fprintf (fp,"P6\n%d %d\n255\n",width,height);
 
@@ -1126,7 +1126,7 @@ int Image::colormap(int narg, char **arg)
     if (mbinsize <= 0.0) return 1;
     mbinsizeinv = 1.0/mbinsize;
   }
-    
+
   nentry = atoi(arg[4]);
   if (nentry < 1) return 1;
   mentry = new MapEntry[nentry];
@@ -1166,7 +1166,7 @@ int Image::colormap(int narg, char **arg)
     }
     if (mentry[i].color == NULL) return 1;
   }
-  
+
   if (mstyle == CONTINUOUS) {
     if (nentry < 2) return 1;
     if (mentry[0].single != MINVALUE || mentry[nentry-1].single != MAXVALUE)
@@ -1180,7 +1180,7 @@ int Image::colormap(int narg, char **arg)
   } else if (mstyle == SEQUENTIAL) {
     if (nentry < 1) return 1;
   }
-  
+
   return 0;
 }
 
@@ -1197,7 +1197,7 @@ int Image::addcolor(char *name, double r, double g, double b)
     if (strcmp(name,username[icolor]) == 0) break;
 
   if (icolor == ncolors) {
-    username = (char **) 
+    username = (char **)
       memory->srealloc(username,(ncolors+1)*sizeof(char *),"image:username");
     memory->grow(userrgb,ncolors+1,3,"image:userrgb");
     ncolors++;
@@ -1241,13 +1241,13 @@ double *Image::value2color(double value)
   if (mstyle == CONTINUOUS) {
     for (int i = 0; i < nentry-1; i++)
       if (value >= mentry[i].svalue && value <= mentry[i+1].svalue) {
-	double fraction = (value-mentry[i].svalue) / 
+	double fraction = (value-mentry[i].svalue) /
 	  (mentry[i+1].svalue-mentry[i].svalue);
-	interpolate[0] = mentry[i].color[0] + 
+	interpolate[0] = mentry[i].color[0] +
 	  fraction*(mentry[i+1].color[0]-mentry[i].color[0]);
-	interpolate[1] = mentry[i].color[1] + 
+	interpolate[1] = mentry[i].color[1] +
 	  fraction*(mentry[i+1].color[1]-mentry[i].color[1]);
-	interpolate[2] = mentry[i].color[2] + 
+	interpolate[2] = mentry[i].color[2] +
 	  fraction*(mentry[i+1].color[2]-mentry[i].color[2]);
 	return interpolate;
       }
@@ -1271,7 +1271,7 @@ double *Image::value2color(double value)
 
 double *Image::color2rgb(const char *color, int index)
 {
-  static const char *name[NCOLORS] = { 
+  static const char *name[NCOLORS] = {
     "aliceblue",
     "antiquewhite",
     "aqua",
@@ -1583,7 +1583,7 @@ int Image::default_colors()
 
 double *Image::element2color(char *element)
 {
-  static const char *name[NELEMENTS] = { 
+  static const char *name[NELEMENTS] = {
     "H", "He", "Li", "Be", "B", "C", "N", "O", "F", "Ne",
     "Na", "Mg", "Al", "Si", "P", "S", "Cl", "Ar", "K", "Ca",
     "Sc", "Ti", "V", "Cr", "Mn", "Fe", "Co", "Ni", "Cu", "Zn",
@@ -1722,7 +1722,7 @@ double *Image::element2color(char *element)
 
 double Image::element2diam(char *element)
 {
-  static const char *name[NELEMENTS] = { 
+  static const char *name[NELEMENTS] = {
     "H", "He", "Li", "Be", "B", "C", "N", "O", "F", "Ne",
     "Na", "Mg", "Al", "Si", "P", "S", "Cl", "Ar", "K", "Ca",
     "Sc", "Ti", "V", "Cr", "Mn", "Fe", "Co", "Ni", "Cu", "Zn",
