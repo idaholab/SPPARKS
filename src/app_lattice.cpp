@@ -611,12 +611,14 @@ void AppLattice::iterate_kmc_sector(double stoptime)
 
     nsweeps++;
     time += dt_kmc;
-    if (time_flag) { //yongfeng
-      realtime += dt_kmc/nprocs*real_time(time);
-    }
+
+    if (time_flag)
+      realtime += dt_kmc / nprocs * real_time(time);
+
     if (reaction_flag) check_reaction(); //yongfeng
     if (ballistic_flag) check_ballistic(time); //yongfeng
     if (concentrationflag) concentration_field(); //yongfeng
+
     if (time >= stoptime) alldone = 1;
     if (alldone || time >= nextoutput)
       nextoutput = output->compute(time,alldone);
