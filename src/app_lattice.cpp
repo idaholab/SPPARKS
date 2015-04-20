@@ -586,7 +586,7 @@ void AppLattice::iterate_kmc_sector(double stoptime)
 	isite = solve->event(&dt);
 	timer->stamp(TIME_SOLVE);
 
-	if (isite < 0) done = 1;
+	if (isite < 0 || site2i[isite] < 0) done = 1;  // site2i[isite]
 	else {
 	  timesector += dt;
 	  if (timesector >= dt_kmc) done = 1;
