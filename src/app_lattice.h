@@ -63,7 +63,7 @@ class AppLattice : public App {
   virtual void init_app() {}
   virtual void setup_app() {}
   virtual void setup_end_app() {}
-  virtual void *extract_app(char *) {return NULL;}
+  virtual void *extract_app(const char *) {return NULL;}
 
   virtual void push_new_site(int, int *, int, std::stack<int>*);
   virtual void push_connected_neighbors(int, int *, int, std::stack<int>*);
