@@ -157,7 +157,7 @@ void App::reset_time(double newtime)
    names iarrayN and darrayN mean entry N from 1 to ninteger or ndouble
  ------------------------------------------------------------------------- */
 
-void *App::extract(char *name)
+void *App::extract(const char *name)
 {
   if (strcmp(name,"dimension") == 0) return (void *) &domain->dimension;
   if (strcmp(name,"boxxlo") == 0) return (void *) &domain->boxxlo;

@@ -73,7 +73,7 @@ void spparks_close(void *ptr)
    process an input script in filename str
 ------------------------------------------------------------------------- */
 
-void spparks_file(void *ptr, char *str)
+void spparks_file(void *ptr, const char *str)
 {
   SPPARKS *spk = (SPPARKS *) ptr;
   spk->input->file(str);
@@ -83,7 +83,7 @@ void spparks_file(void *ptr, char *str)
    process a single input command in str
 ------------------------------------------------------------------------- */
 
-char *spparks_command(void *ptr, char *str)
+char *spparks_command(void *ptr, const char *str)
 {
   SPPARKS *spk = (SPPARKS *) ptr;
   return spk->input->one(str);
@@ -101,7 +101,7 @@ char *spparks_command(void *ptr, char *str)
    returns a NULL if SPPARKS does not recognize the name
 ------------------------------------------------------------------------- */
 
-void *spparks_extract(void *ptr, char *name)
+void *spparks_extract(void *ptr, const char *name)
 {
   SPPARKS *spk = (SPPARKS *) ptr;
   return spk->app->extract(name);
