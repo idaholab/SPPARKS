@@ -5,7 +5,7 @@
 
    Copyright (2008) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
-   certain rights in this software.  This software is distributed under 
+   certain rights in this software.  This software is distributed under
    the GNU General Public License.
 
    See the README file in the top-level SPPARKS directory.
@@ -17,7 +17,7 @@
 #include "pointers.h"
 
 namespace SPPARKS_NS {
-  
+
 class App : protected Pointers {
  public:
   enum APP_CLASSES{GENERAL,LATTICE,OFF_LATTICE};
@@ -25,7 +25,7 @@ class App : protected Pointers {
   int appclass;           // one of the enum values
   char *style;            // style name of app
   double time;            // current simulation time due to executed events
-  double realtime;        // current real time, scaled by vacancy concentration 
+  double realtime;        // current real time, scaled by vacancy concentration
   double stoptime;        // time at which to stop this run
   int sites_exist;        // 1 if sites have been created
 
@@ -45,13 +45,13 @@ class App : protected Pointers {
   virtual ~App();
   void run(int, char **);
   void reset_time(double);
-  void *extract(char *);
+  void *extract(const char *);
   tagint min_site_ID();
   tagint max_site_ID();
   virtual bigint memory_usage() {return 0;}
 
   // pure virtual functions, must be defined in child class
-  
+
   virtual void input(char *, int, char **) = 0;
   virtual void init() = 0;
   virtual void setup() = 0;
@@ -61,7 +61,7 @@ class App : protected Pointers {
 
   virtual void stats(char *strtmp) {strtmp[0] = '\0';};
   virtual void stats_header(char *strtmp) {strtmp[0] = '\0';};
-  virtual void *extract_app(char *) {return NULL;}
+  virtual void *extract_app(const char *) {return NULL;}
 
  protected:
   int first_run;
