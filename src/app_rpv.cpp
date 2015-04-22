@@ -148,7 +148,7 @@ AppRpv::~AppRpv()
     memory->destroy(sink_mfp);
     memory->destroy(nabsorption);
   }
-/*
+
   if(ballistic_flag) {
     memory->destroy(bfreq);
     memory->destroy(btypei);
@@ -177,7 +177,7 @@ AppRpv::~AppRpv()
     memory->destroy(target_global);
     memory->destroy(nsites_local);
   } 
-*/
+
 }
 
 /* ---------------------------------------------------------------------- 
@@ -674,7 +674,7 @@ double AppRpv::site_SP_energy(int i, int j, int estyle)
 
 double AppRpv::site_propensity(int i)
 {
-  int j, iid, jid, m, md;
+  int j, iid, jid;
 
   // valid hop and recombination tabulated lists
   // propensity for each event is input by user
@@ -947,7 +947,7 @@ void AppRpv::update_propensity(int i)
 ------------------------------------------------------------------------- */
 void AppRpv::check_reaction()
 { 
-  int a,i,m,n,n_me,n_total,flag_local,nsites_global;
+  int i,m,n,n_me,n_total,flag_local,nsites_global;
   double nprcs = (double)(domain->nprocs);  
 
   //update the statistics of each elements locally 
@@ -1090,9 +1090,9 @@ void AppRpv::check_ballistic(double t)
 
 void AppRpv::ballistic(int n)
 {
-  int i,j,iwhich,iid,jid,ibtype,jbtype;
+  int i,iwhich,iid,jid,ibtype,jbtype;
   int iproc,jproc,found_me,found_all;
-  double rand_me,seed,xiid[3]; 
+  double rand_me,xiid[3]; 
 
   // find atom j for the exchange 
   iproc = jproc = -1; 
@@ -1446,7 +1446,7 @@ void AppRpv::sink_creation(int n)
   int ntype = sink_type[n];
   int segment = sink_segment[n]; 
   int nlattice = nlocal + nghost; 
-  double dx,dij[3],rij,rik,rjk,lprd[3];
+  double dx,dij[3],rik,rjk,lprd[3];
   double radius = sink_radius[n]; 
   double strength = sink_strength[n]*sink_strength[n];  
 
@@ -1742,13 +1742,13 @@ void AppRpv::stress_dislocation(int n)
 
 void AppRpv::stress_loop(int n)
 {   
-  int i,j,k,l,ii;
+  int i,j;
   int normal,nseg,iseg,jseg;
   int nlattice = nlocal + nghost;
   int periodicity[3];
 
   double pix,theta; 
-  double dij[3],x[3],xseg[40][3]; //maximum 40 segment to represent a circle 
+  double dij[3],xseg[40][3]; //maximum 40 segment to represent a circle 
   double A[3],B[3],P[3];
   double bv[3],rloop;  // burgers vector and loop normal & radius
   double stres[3][3],sstres[3][3]; // stress tensor at lattice site 
@@ -1836,12 +1836,9 @@ void AppRpv::stress_loop(int n)
 void AppRpv::seg_stress( double A[3], double B[3], double P[3], double bv[3], double sstres[3][3])
 { int i,j; 
   
-  double xi[3],PA[3],PB[3],x[3]; 
-  double ev[3],ni[3]; 
-  double norm,eps,dotx,h; 
-  double tau1[3],tau2[3]; 
-  double m1[3],m2[3];
-  double beta1,beta2;
+  double xi[3],PA[3],PB[3],x[3],ni[3]; 
+  double norm,eps,dotx,beta1,beta2; 
+  double tau1[3],tau2[3],m1[3],m2[3];
   double sigma1[3][3],sigma2[3][3],sigma_p1[3][3],sigma_p2[3][3];  
   
   eps = 1.0e-6; 
@@ -1926,9 +1923,9 @@ void AppRpv::seg_stress( double A[3], double B[3], double P[3], double bv[3], do
 ------------------------------------------------------------------------- */
 
 void AppRpv::sigma_A(double t[3], double m[3], double bv[3], double sigma[3][3])
-{ int i, j, k, l, ii; 
- 
-  double pix,norm;
+{ 
+  int i,j,k,l,ii; 
+  double pix;
   double ni[3],nx[3],tx[3]; 
   double bmatx[3][3],qmatx[3][3],smatx[3][3];
   double bpmat[3][3],qpmat[3][3],spmat[3][3];
@@ -2021,7 +2018,7 @@ void AppRpv::sigma_A(double t[3], double m[3], double bv[3], double sigma[3][3])
 void AppRpv::sigma_P(double t[3], double ni[3], double bv[3], double sigmap[3][3])
 { int i, j, k, l, ii; 
  
-  double pix,norm;
+  double pix;
   double nn[3][3],nm[3][3],nt[3][3],nni[3][3],mi[3];
   double bmatx[3][3],qmatx[3][3],smatx[3][3];
   double bpmat[3][3],qpmat[3][3],spmat[3][3];
@@ -2113,11 +2110,10 @@ void AppRpv::sigma_P(double t[3], double ni[3], double bv[3], double sigmap[3][3
 void AppRpv::stroh( double tvect[3], double qmatx[3][3], double bmatx[3][3], double smatx[3][3])
 {
   int i,j,k,l; 
-  double pix,omega,domega,det; 
+  double pix,omega,domega; 
   double mvect[3],nvect[3],mmvect[3],nnvect[3];
   double nn[3][3],mm[3][3],nm[3][3],mn[3][3];
-  double nni[3][3],nn2[3][3],nn23[3][3],nn3[3][3];
-  double qi[9][21],si[9][21],bi[9][21]; 
+  double nni[3][3],nn2[3][3],nn3[3][3];
   
   pix = acos(-1.0); 
   domega = 2*pix/ninteg; 
@@ -2132,14 +2128,6 @@ void AppRpv::stroh( double tvect[3], double qmatx[3][3], double bmatx[3][3], dou
     } 
   }
   
-  for(i = 0; i < 9; i ++) {
-    for(j = 0; j < ninteg; j ++) {
-      qi[i][j] = 0.0;
-      si[i][j] = 0.0;
-      bi[i][j] = 0.0;
-    } 
-  }
- 
   for(int integ = 0; integ < ninteg; integ ++) {
 
     for(i = 0; i < 3; i ++) {
@@ -2214,12 +2202,12 @@ void AppRpv::stroh_p( double t[3], double n0[3], double qpmat[3][3], double bpma
 
   double pix,value;
   double N1[3],M1[3],ni[3],mi[3]; 
-  double domega,theta,omega,omegas[100]; 
+  double domega,omega,omegas[100]; 
   double qmatx[3][3],bmatx[3][3],smatx[3][3];
   double nn[3][3],mm[3][3],mn[3][3],nm[3][3],nni[3][3]; 
   double nt[3][3],tn[3][3],mt[3][3],tm[3][3]; 
   double F[3][3],Bi[3][3],Si[3][3],Qi[3][3];
-  double temp1[3][3],temp2[3][3],temp3[3][3],temp4[3][3],temp5[3][3]; 
+  double temp1[3][3],temp2[3][3],temp3[3][3],temp4[3][3]; 
   double BP[9][100],SP[9][100],QP[9][100]; 
    
   pix = acos(-1.0); 
@@ -2420,6 +2408,7 @@ void AppRpv::stroh_p( double t[3], double n0[3], double qpmat[3][3], double bpma
     }
   } // end loop for i = 0 - ninteg  
 
+  value = 0.0; 
   for(j = 0; j < 3; j ++) {
     for(k = 0; k < 3; k ++) {
       trapozidal(omegas,BP,j,k,value); 
