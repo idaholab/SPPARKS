@@ -13,7 +13,6 @@
 
 #ifdef APP_CLASS
 AppStyle(rpv,AppRpv)
-
 #else
 
 #ifndef SPK_APP_RPV_H
