@@ -124,10 +124,13 @@ AppRpv::~AppRpv()
   memory->destroy(ebond1);
   memory->destroy(ebond2);
   memory->destroy(mbarrier);
-  memory->destroy(numneigh2);
-  memory->destroy(neighbor2);
 
-  if(dislocation_flag) //memory use related dislocation 
+  if (engstyle == 2) {
+    memory->destroy(numneigh2);
+    memory->destroy(neighbor2);
+  } 
+
+  if (dislocation_flag) {//memory use related dislocation 
     memory->destroy(stress); 
     memory->destroy(dislocation_type); 
     memory->destroy(burgers); 
@@ -135,8 +138,9 @@ AppRpv::~AppRpv()
     memory->destroy(line_vector); 
     memory->destroy(nsegment); 
     memory->destroy(xdislocation);
+  }
   
-  if(sink_flag) { //memory use related to sink 
+  if (sink_flag) { //memory use related to sink 
     memory->destroy(sink_shape); 
     memory->destroy(sink_type); 
     memory->destroy(sink_strength);
@@ -149,7 +153,7 @@ AppRpv::~AppRpv()
     memory->destroy(nabsorption);
   }
 
-  if(ballistic_flag) {
+  if (ballistic_flag) {
     memory->destroy(bfreq);
     memory->destroy(btypei);
     memory->destroy(btypej);
@@ -164,7 +168,7 @@ AppRpv::~AppRpv()
   } 
 
 
-  if(reaction_flag) {//memory use related to reaction 
+  if (reaction_flag) {//memory use related to reaction 
     memory->destroy(rsite); 
     memory->destroy(rinput); 
     memory->destroy(routput); 
@@ -177,7 +181,6 @@ AppRpv::~AppRpv()
     memory->destroy(target_global);
     memory->destroy(nsites_local);
   } 
-
 }
 
 /* ---------------------------------------------------------------------- 
