@@ -559,7 +559,7 @@ void AppRpv::setup_app()
   if(barrierflag == 0) error->warning(FLERR, "Diffusion barrier not defined: AppRpv");
 
   double KB = 0.00008617;
-  temperature *= KB;  
+  KBT = temperature * KB;  
 }
 
 /* ----------------------------------------------------------------------
@@ -698,7 +698,7 @@ double AppRpv::site_propensity(int i)
         if(!(sink_flag && isink[i][jid -1] == 1)) {//production at sinks allowed   
           ebarrier = rbarrier[j];  
           if(elastic_flag) ebarrier += elastic_energy(i,jid) - elastic_energy(i,iid); 
-          hpropensity = rrate[j] * exp(-ebarrier/temperature);
+          hpropensity = rrate[j] * exp(-ebarrier/KBT);
           add_event(i,jid,2,j,hpropensity);
           prob_reaction += hpropensity;
         }
@@ -714,7 +714,7 @@ double AppRpv::site_propensity(int i)
     jid = neighbor[i][j];
     if(element[jid] != VACANCY) { // no vacancy-vacancy switch 
       ebarrier = site_SP_energy(i,jid,engstyle); // diffusion barrier
-      hpropensity = exp(-ebarrier/temperature);
+      hpropensity = exp(-ebarrier/KBT);
       add_event(i,jid,1,-1,hpropensity);
       prob_hop += hpropensity;
     } 
