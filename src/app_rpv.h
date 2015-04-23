@@ -13,7 +13,6 @@
 
 #ifdef APP_CLASS
 AppStyle(rpv,AppRpv)
-
 #else
 
 #ifndef SPK_APP_RPV_H
@@ -53,7 +52,7 @@ class AppRpv : public AppLattice {
 
   int nelement; //total reactions
   int *nsites_local; //statics of local element 
-  double hpropensity; //rate and propensity for hop diffusion 
+  double KBT; //rate and propensity for hop diffusion 
   double **ebond1,**ebond2; //bond energy 
   double **disp; //atomic displacement  
   double *mbarrier; //migration barriers
