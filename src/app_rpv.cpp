@@ -47,6 +47,9 @@ AppRpv::AppRpv(SPPARKS *spk, int narg, char **arg) :
   allow_kmc = 1;
   allow_rejection = 0;
 
+  elastic_flag = 0;
+  nballistic = 0;
+
   engstyle = 1; //default 1NN interaction  
   diffusionflag = 0; //default not calculate atomic  displacement 
   if (narg < 1) error->all(FLERR,"Illegal app_style command");
