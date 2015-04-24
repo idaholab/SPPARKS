@@ -398,7 +398,7 @@ void AppRpv::define_2NN()
   int i,j,k,jd,kd,n1nn,n2nn,njnn,ncandidate;
 
   memory->create(numneigh2,nlocal+nghost,"app, numneigh2");
-  memory->create(neighbor2,nlocal+nghost,MAX2NN, "app, neighbor2");
+  memory->create(neighbor2,nlocal+nghost,MAX2NN,"app, neighbor2");
   for (i = 0; i < nlocal+nghost; i++) {
     for (j = 0; j < 64; j++) candidate[j] = 0;  
     for (j = 0; j < 64; j++) frequency[j] = 0;  
@@ -429,7 +429,8 @@ void AppRpv::define_2NN()
         kd = candidate[k];
         if(kd == jd) frequency[j]++;
       }  
-      if(frequency[j] == 4) { 
+      if(frequency[j] == 4) {
+        if (n2nn == MAX2NN) error->all(FLERR, "Two many 2nd nearest neighbors defined, please expand the simulation cell dimensions or MAX2NN");  
         neighbor2[i][n2nn] = jd;
         n2nn++; // selected if shared by 4 NNs
       }
@@ -577,7 +578,6 @@ double AppRpv::sites_energy(int i, int estyle)
   int j,jd,n1nn;
   double eng = 0.0; 
 
-
   //energy from 1NN bonds
   n1nn = numneigh[i];  //num of 1NN
   for (j = 0; j < n1nn; j++) {
@@ -604,8 +604,9 @@ double AppRpv::sites_energy(int i, int estyle)
 double AppRpv::elastic_energy(int i, int itype)
 {
   double eng = 0.0;
-  double pressure = -(stress[i][0] + stress[i][1] + stress[i][2])/3.0; 
-
+  double pressure = 0.0; 
+  
+  pressure = -(stress[i][0] + stress[i][1] + stress[i][2])/3.0; 
   eng = pressure * evol[itype];
 
   return eng; 
@@ -1237,7 +1238,7 @@ void AppRpv::ballistic_probability(int n)
 
 double AppRpv::total_energy( )
 {
-  double penergy;
+  double penergy = 0.0;
   for(int i = 0; i < nlocal; i++) penergy += sites_energy(i,engstyle);
   if(elastic_flag) {
     for(int j = 0; j < nlocal; j++) {
