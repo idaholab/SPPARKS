@@ -121,6 +121,7 @@ AppRpv::~AppRpv()
   delete [] esites;
   delete [] echeck;
   delete [] hcount; // number of vacancy switch   
+  delete ranrpv; 
 
   memory->sfree(events);
   memory->destroy(firstevent);
