@@ -29,7 +29,7 @@
 
 using namespace SPPARKS_NS; 
 
-enum{NOOP,BCC,NBCC};                          // all sites are BCC except for SIAs, type 
+enum{NOOP,BCC,NBCC};                          // all sites are BCC except for SIAs; type 
 enum{ZERO,FE,VACANCY,CU,NI,MN,Si,P,C,SIA};       // same as DiagRpv; element  
 
 #define DELTAEVENT 100000
@@ -40,27 +40,25 @@ enum{ZERO,FE,VACANCY,CU,NI,MN,Si,P,C,SIA};       // same as DiagRpv; element
 AppRpv::AppRpv(SPPARKS *spk, int narg, char **arg) : 
   AppLattice(spk,narg,arg)
 {
-  ninteger = 2; // first for type,second for element 
+  ninteger = 2; // first for lattice type,second for element 
   ndouble = 0;   
   delpropensity = 2;
   delevent = 1;
   allow_kmc = 1;
   allow_rejection = 0;
 
-  elastic_flag = 0;
-  nballistic = 0;
-
-  engstyle = 1; //default 1NN interaction  
-  diffusionflag = 0; //default not calculate atomic  displacement 
+  engstyle = 1; //1 for 1NN interaction, 2 for 2NN interaction; default 1  
+  diffusionflag = 0; //flag for MSD calculations, 1 for yes, 0 for no; default 0  
   if (narg < 1) error->all(FLERR,"Illegal app_style command");
-  if (narg >= 2) engstyle = atoi(arg[1]); // 1 for 1NN interaction, 2 for 2NN interaction 
-  if (narg >= 3) diffusionflag = atoi(arg[2]); // 1 for 1NN interaction, 2 for 2NN interaction 
-  if (narg >= 4) concentrationflag = atoi(arg[3]); // 1 for 1NN interaction, 2 for 2NN interaction 
+  if (narg >= 2) engstyle = atoi(arg[1]);  
+  if (narg >= 3) diffusionflag = atoi(arg[2]);  
+  if (narg >= 4) concentrationflag = atoi(arg[3]);  
   if (engstyle == 2) delpropensity += 1;// increase delpropensity for 2NN interaction
 
   // darray 1-4 for msd if activated, followed by concentrations  
-  if (diffusionflag == 1) {ninteger++; ndouble += 4;} //needed for atomic displacement 
-  if (concentrationflag) {ndouble += concentrationflag + 1;} //calculate concentration fields for concentrationflag elements   
+  if (diffusionflag == 1) {ninteger++; ndouble += 4;} 
+  // calculate concentration fiels for certain elements 
+  if (concentrationflag) {ndouble += concentrationflag + 1;}    
   ndiffusion = diffusionflag*4; 
  
   create_arrays();
@@ -77,14 +75,16 @@ AppRpv::AppRpv(SPPARKS *spk, int narg, char **arg) :
   double seed = ranmaster->uniform();
   ranrpv->reset(seed,me,100);
 
-  // reaction lists
+  // flags for bond interactions 
   ebond1 = NULL;
   ebond2 = NULL;
   mbarrier = NULL;
   hcount = NULL; //numner of vacancy switch events 
   nn1flag = nn2flag = barrierflag = time_flag = 0; //flags for bond energy and migration barriers
-  sink_flag = moduli_flag = dislocation_flag = reaction_flag = 0; //flags for sink dislocation and vacancy
-  nsink = ndislocation = nreaction = 0; 
+  
+  // flags and parameters for sinks, dislocations, reactions and ballistic mixing    
+  sink_flag = elastic_flag = moduli_flag = dislocation_flag = reaction_flag = 0; //flags for sink dislocation and vacancy
+  nsink = ndislocation = nreaction = nballistic = 0; 
 
   // arrays for dislocations 
   dislocation_type = line_vector = nsegment = NULL;
@@ -102,8 +102,8 @@ AppRpv::AppRpv(SPPARKS *spk, int narg, char **arg) :
   rbarrier = rrate = NULL; 
 
   // arrays for ballistic mixing 
-  rpeak = rdamp = pn_local = pn_global = NULL;
-  bfreq = btypei = btypej = time_old = time_new = NULL;
+  rdamp = pn_local = pn_global = NULL;
+  bfreq = time_old = time_new = NULL;
   xmix = pmix = NULL; 
  
   // 2NN neigbor information 
@@ -128,12 +128,12 @@ AppRpv::~AppRpv()
   memory->destroy(ebond2);
   memory->destroy(mbarrier);
 
-  if (engstyle == 2) {
+  if (engstyle == 2) {// memory use for 2NNs
     memory->destroy(numneigh2);
     memory->destroy(neighbor2);
   } 
 
-  if (dislocation_flag) {//memory use related dislocation 
+  if (dislocation_flag) {// memory use related to dislocation 
     memory->destroy(stress); 
     memory->destroy(dislocation_type); 
     memory->destroy(burgers); 
@@ -143,7 +143,7 @@ AppRpv::~AppRpv()
     memory->destroy(xdislocation);
   }
   
-  if (sink_flag) { //memory use related to sink 
+  if (sink_flag) { // memory use related to sink 
     memory->destroy(sink_shape); 
     memory->destroy(sink_type); 
     memory->destroy(sink_strength);
@@ -156,13 +156,10 @@ AppRpv::~AppRpv()
     memory->destroy(nabsorption);
   }
 
-  if (ballistic_flag) {
+  if (ballistic_flag) { // memory use related to ballistic mixing 
     memory->destroy(bfreq);
-    memory->destroy(btypei);
-    memory->destroy(btypej);
     memory->destroy(time_old);
     memory->destroy(time_new);
-    memory->destroy(rpeak);
     memory->destroy(rdamp);
     memory->destroy(pn_local);
     memory->destroy(pn_global);
@@ -171,7 +168,7 @@ AppRpv::~AppRpv()
   } 
 
 
-  if (reaction_flag) {//memory use related to reaction 
+  if (reaction_flag) {// memory use related to reaction 
     memory->destroy(rsite); 
     memory->destroy(rinput); 
     memory->destroy(routput); 
@@ -199,7 +196,7 @@ void AppRpv::input_app(char *command, int narg, char **arg)
   if (strcmp(command,"ebond1") == 0) {
 
     if (narg < 3) error->all(FLERR,"Illegal ebond1 command");
-    nelement = atoi(arg[0]);   //num of elements involved
+    nelement = atoi(arg[0]);   // num of elements
 
     memory->create(nsites_local,nelement,"app/rpv:nsites_local"); 
     memory->create(ebond1,nelement+1,nelement+1,"app/rpv:ebond1");
@@ -221,7 +218,7 @@ void AppRpv::input_app(char *command, int narg, char **arg)
   // 2NN bond energy taken in the order of 11 12 ... 1N; 22 ... 2N; ...; NN 
   else if (strcmp(command,"ebond2") == 0) {
 
-    nelement = atoi(arg[0]);   //num of elements involved
+    nelement = atoi(arg[0]);   // num of elements 
     memory->create(ebond2,nelement+1,nelement+1,"app/rpv:ebond2");
     if(narg != nelement*(nelement+1)/2+1) error->all(FLERR,"Illegal ebond command"); 
 
@@ -249,7 +246,7 @@ void AppRpv::input_app(char *command, int narg, char **arg)
     }
   }
  
-  // binding energier used for time_coefficient  
+  // time intervals used to estimate solute trapping   
   else if (strcmp(command, "time_tracer") ==0) {
   
     if (narg < 1 ) error->all(FLERR,"Illegal time_tracer command");
@@ -269,7 +266,7 @@ void AppRpv::input_app(char *command, int narg, char **arg)
     dcore = atof(arg[4]);
   }
   
-  // add stress field of dislocations or loops  
+  // calculating stress field of dislocations or loops  
   else if (strcmp(command, "dislocation") ==0) {
 
     if(narg < 8 || moduli_flag == 0) error->all(FLERR,"illegal dislocation command"); 
@@ -283,7 +280,7 @@ void AppRpv::input_app(char *command, int narg, char **arg)
     dislocation_flag = 1; 
     grow_dislocations(); 
 
-    // dislocation type, 1 straight, 3 loop  
+    // dislocation type, 1 straight, others loop  
     dislocation_type[ndislocation] = atoi(arg[0]);
     burgers[ndislocation][0] = atof(arg[1]); //burgers vector 
     burgers[ndislocation][1] = atof(arg[2]); 
@@ -299,6 +296,7 @@ void AppRpv::input_app(char *command, int narg, char **arg)
       nsegment[ndislocation] = atoi(arg[9]); //loop segments(shape), for loop only 
     } 
 
+    // compute the stress field 
     stress_field(ndislocation);
     ndislocation ++; 
   }  
@@ -321,7 +319,7 @@ void AppRpv::input_app(char *command, int narg, char **arg)
     } 
   }
 
-  //define sinks to defects, could be dislocations or interfaces or 3D regions 
+  // define sinks to defects, could be dislocations or interfaces or 3D regions 
   else if (strcmp(command, "sink") ==0) {
 
     if(narg != 10) error->all(FLERR,"illegal sink command");
@@ -336,13 +334,13 @@ void AppRpv::input_app(char *command, int narg, char **arg)
     grow_sinks();  
     
     sink_type[nsink] = atoi(arg[0]); // sink to certain element 
-    sink_strength[nsink] = atof(arg[1]); // radius of sink, 
+    sink_strength[nsink] = atof(arg[1]); // thickness of sink 
     sink_shape[nsink] = atoi(arg[2]); // 1 dislocation, 2 interface, 3 3D region 
     xsink[nsink][0] = atof(arg[3]); // coordinaiton of sink center 
     xsink[nsink][1] = atof(arg[4]);
     xsink[nsink][2] = atof(arg[5]);  
     sink_normal[nsink] = atoi(arg[6]); // normal of planar sinks 
-    sink_radius[nsink] = atof(arg[7]); 
+    sink_radius[nsink] = atof(arg[7]); // radius for circular or polygonal sinks  
     sink_segment[nsink] = atoi(arg[8]); // # of segment for polygon sinks 
     sink_mfp[nsink] = atof(arg[9]); // mean free path in this sink    
     nabsorption[nsink] = 0; // initialize number of absorptions     
@@ -359,27 +357,24 @@ void AppRpv::input_app(char *command, int narg, char **arg)
     reaction_flag = 1;
     grow_reactions(); // grow reation list 
   
-    rsite[nreaction] = atoi(arg[0]); // reaciton site: type of sinks 
+    rsite[nreaction] = atoi(arg[0]); // reaciton site: type of lattice site  
     rinput[nreaction] = atoi(arg[1]); // input element      
     routput[nreaction] = atoi(arg[2]); // output element      
     rbarrier[nreaction] = atof(arg[3]); // reaction barrier      
-    rrate[nreaction] = atof(arg[4]); // reaction barrier      
-    rtarget[nreaction] = atoi(arg[5]); // target value of output type       
+    rrate[nreaction] = atof(arg[4]); // reaction rate 
+    rtarget[nreaction] = atoi(arg[5]); // target number of output element 
        
     nreaction ++; 
   }
   
   else if (strcmp(command, "ballistic") ==0) { 
     
-    if(narg != 5) error->all(FLERR,"illegal ballistic command");
+    if(narg < 2) error->all(FLERR,"illegal ballistic command");
     ballistic_flag = 1; 
     grow_ballistic(); 
     
     bfreq[nballistic] = atoi(arg[0]); // dose rate 
-    rpeak[nballistic] = atof(arg[1]); // peak damage position 
-    rdamp[nballistic] = atof(arg[2]); // damage range 
-    //btypei[nballistic] = atoi(arg[3]); // type i for mixing 
-    //btypej[nballistic] = atoi(arg[4]); // type j for mixing 
+    rdamp[nballistic] = atof(arg[1]); // damage range 
 
     nballistic ++; // number of mixing events 
 
@@ -445,12 +440,12 @@ void AppRpv::define_2NN()
 
 void AppRpv::grow_app()
 {
-  type = iarray[0];   // i1 in input 
-  element = iarray[1];  // i2 in input
+  type = iarray[0];   // lattice type; i1 in input 
+  element = iarray[1];  // element type; i2 in input
   
   if(diffusionflag) {
     aid = iarray[2]; // initially set as global ID, must use set i3 unique in command line 
-    disp = darray; // zero initially 
+    disp = darray; // msd; zero initially 
   }
 }
 
@@ -625,11 +620,12 @@ double AppRpv::site_SP_energy(int i, int j, int estyle)
   eng0j = 2 * sites_energy(j,estyle); //broken bond with j initially 
   eng1i = eng1j = ebond1[element[i]][element[j]]; //bond between i&j, 
   
-  //bond formed with j with after switch 
+  //bond formed with j after switch 
   for (m = 0; m < numneigh[i]; m++) 
   {
     jd = neighbor[i][m];
-    if(jd != j) eng1i += ebond1[element[j]][element[jd]]; 
+    if (jd != j) 
+       eng1i += ebond1[element[j]][element[jd]]; 
   }  
 
   if (estyle == 2) 
@@ -641,17 +637,17 @@ double AppRpv::site_SP_energy(int i, int j, int estyle)
     }
   }    
 
-  //bond formed with i with after switch 
+  //bond formed with i after switch 
   for (m = 0; m < numneigh[j]; m++) 
   {
     jd = neighbor[j][m];
     if (jd != i) 
-      eng1j += ebond1[element[i]][element[jd]];
+       eng1j += ebond1[element[i]][element[jd]];
   }  
 
   if (estyle == 2) 
   {
-    for(m = 0; m < numneigh2[j]; m++) 
+    for (m = 0; m < numneigh2[j]; m++) 
     {
       jd = neighbor2[j][m]; 
       eng1j += ebond2[element[i]][element[jd]]; 
@@ -685,7 +681,6 @@ double AppRpv::site_propensity(int i)
 
   // valid hop and recombination tabulated lists
   // propensity for each event is input by user
-
   clear_events(i);
   double prob_reaction = 0.0; 
   double prob_hop = 0.0;
@@ -767,7 +762,7 @@ void AppRpv::site_event(int i, class RandomPark *random)
     element[j] = k;
     hcount[element[i]] ++;
 
-    // calculate MSD fpr each atom if activated 
+    // calculate MSD for each atom if activated 
     if(diffusionflag) {  
       // switch global atomic id 
       k = aid[i];
@@ -1047,7 +1042,6 @@ void AppRpv::clear_events(int i)
 void AppRpv::add_event(int i, int j, int rstyle, int which, double propensity)
 {
   // grow event list and setup free list
-
   if (nevents == maxevent) {
     maxevent += DELTAEVENT;
     events = 
@@ -1058,10 +1052,9 @@ void AppRpv::add_event(int i, int j, int rstyle, int which, double propensity)
 
   int next = events[freeevent].next;
 
-//for hop, rstyle = 1, and switch element at sites I and which 
-//for reaction, rstyle = 2, and switch element at site I to which 
+  //for hop, rstyle = 1, and switch element at sites I and which 
+  //for reaction, rstyle = 2, and switch element at site I to which 
   //events[freeevent].kpartner = kpartner;
-
   events[freeevent].style = rstyle;
   events[freeevent].jpartner = j;
   events[freeevent].which = which;
@@ -1097,13 +1090,13 @@ void AppRpv::check_ballistic(double t)
 
 void AppRpv::ballistic(int n)
 {
-  int i,iwhich,iid,jid,ibtype,jbtype;
+  int i,iwhich,iid,jid,ibtype,jbtype,ibtype_all,jbtype_all;
   int iproc,jproc,found_me,found_all;
   double rand_me,xiid[3]; 
 
   // find atom j for the exchange 
   iproc = jproc = -1; 
-  ibtype = jbtype = btypei[n] = btypej[n] = 0;  
+  ibtype = jbtype = ibtype_all = jbtype_all = 0;  
   xmix[n][0] = xmix[n][1] = xmix[n][2] = 0.0;  
   xiid[0] = xiid[1] = xiid[2] = 0.0; 
   
@@ -1133,20 +1126,17 @@ void AppRpv::ballistic(int n)
     xiid[0] = xyz[iid][0];     
     xiid[1] = xyz[iid][1];     
     xiid[2] = xyz[iid][2];    
-    
   }
  
   MPI_Allreduce(&xiid[0],&xmix[n][0],1,MPI_DOUBLE,MPI_SUM,world);
   MPI_Allreduce(&xiid[1],&xmix[n][1],1,MPI_DOUBLE,MPI_SUM,world);
   MPI_Allreduce(&xiid[2],&xmix[n][2],1,MPI_DOUBLE,MPI_SUM,world);
-  MPI_Allreduce(&ibtype,&btypei[n],1,MPI_INT,MPI_SUM,world);
+  MPI_Allreduce(&ibtype,&ibtype_all,1,MPI_INT,MPI_SUM,world);
 
   // calculate the total exchange propensity
- 
   ballistic_probability(n); 
    
   // find proc j and then jid based on the location of iid  
-
   found_me = found_all = 0; 
   while (found_all == 0) {
     rand_me = ranrpv->uniform();
@@ -1177,16 +1167,17 @@ void AppRpv::ballistic(int n)
     jbtype = element[jid];
   } 
  
-  MPI_Allreduce(&jbtype,&btypej[n],1,MPI_INT,MPI_SUM,world);
+  MPI_Allreduce(&jbtype,&jbtype_all,1,MPI_INT,MPI_SUM,world);
+
 
   // exchange type of iid and jid and update propensity 
   if(me == iproc) {
-    element[iid] = btypej[n]; 
+    element[iid] = jbtype_all; 
     update_propensity(iid);
   } 
 
   if(me == jproc) {  
-    element[jid] = btypei[n]; 
+    element[jid] = ibtype_all; 
     update_propensity(jid);
   } 
 
@@ -1219,8 +1210,8 @@ void AppRpv::ballistic_probability(int n)
      }
 
      dij[3] = sqrt(dij[0]*dij[0]+dij[1]*dij[1]+dij[2]*dij[2]); 
-     double pb = exp(-fabs(dij[3])/rdamp[n]); 
-     // double pb = exp(-fabs(dij[4]-rpeak[n])/rdamp[n]); 
+     double pb = 0.0; 
+     if(dij[3] > 0.0) pb = exp(-fabs(dij[3])/rdamp[n]); 
 
      pn_local[n] += pb;
      pmix[n][i] = pn_local[n]; 
@@ -1262,7 +1253,8 @@ void AppRpv::concentration_field( )
   for(i = 0; i < nlocal; i++) { 
     total_nn = 0; 
     for(j = 0; j < nelement; j++) inn[j] = 0; 
-
+ 
+    inn[element[i]-1] ++; 
     for(j = 0; j < numneigh[i]; j ++) {
       jd = neighbor[i][j]; 
       inn[element[jd]-1] ++; 
@@ -1429,11 +1421,7 @@ void AppRpv::grow_ballistic()
   memory->grow(bfreq,n,"app/rpv:bfreq");
   memory->grow(time_old,n,"app/rpv:time_old");
   memory->grow(time_new,n,"app/rpv:time_new");
-  memory->grow(rpeak,n,"app/rpv:rpeak");
   memory->grow(rdamp,n,"app/rpv:rdamp");
-  memory->grow(btypei,n,"app/rpv:btypei");
-  memory->grow(btypej,n,"app/rpv:btypej");
-
   memory->grow(pn_local,n,"app/rpv:pn_local");
   memory->grow(pn_global,n,"app/rpv:pn_global");
   memory->grow(xmix,n,m,"app/rpv:xmix");
@@ -1467,7 +1455,6 @@ void AppRpv::sink_creation(int n)
   lprd[2] = domain->zprd;
 
   // shape =1: straight line sink, e.g., dislocations 
-  
   if(shape == 1) {  
     for(i = 0; i < nlattice; i++){
       for(j = 0; j < 3; j ++) { 
@@ -1539,7 +1526,6 @@ void AppRpv::sink_creation(int n)
   }
 
   // planar sinks, e.g., grain boundaries
-  
   else if (shape == 3) { 
     for(i = 0; i < nlattice; i++){
       dx = xyz[i][normal]-xsink[n][normal]; 
@@ -1550,7 +1536,6 @@ void AppRpv::sink_creation(int n)
   } 
 
   // 3D spherical sinks, e.g., precipitates 
-   
   else {
     for(i = 0; i < nlattice; i++){
       for( j = 0; j < 3; j ++) { 
@@ -1614,7 +1599,7 @@ void AppRpv::stress_dislocation(int n)
   vector_normalize(tvect);
   stroh(tvect,qmatx,bmatx,smatx); 
   
-  //calculate stress at each lattice site
+  // calculate stress at each lattice site
   for( int natom = 0; natom < nlattice; natom ++) {   
     for( j = 0; j < 3; j ++) { 
       dij[j] = xyz[natom][j] - xdislocation[n][j]; 
@@ -1633,10 +1618,8 @@ void AppRpv::stress_dislocation(int n)
  
       vector_normalize(m); 
 
-      //n = t X m 
       cross_product(tvect,m,ni);  
    
-      //form nn & nm 
       for(j = 0; j < 3; j ++) { 
         for(k = 0; k < 3; k ++) { 
           nn[j][k] = 0.0;
@@ -1657,8 +1640,7 @@ void AppRpv::stress_dislocation(int n)
 
       matrix_inversion(nn,nni);
 
-      //inteimediate matrices
-
+      // inteimediate matrices
       for(i = 0; i < 3; i ++) {
         for(j = 0; j < 3; j ++) {
           temp1[i][j] = bmatx[i][j]; 
@@ -1677,8 +1659,7 @@ void AppRpv::stress_dislocation(int n)
         }
       }   
 
-      //form sigma angular 
-
+      // form sigma angular 
       for(i = 0; i < 3; i ++) {
         for(j = 0; j < 3; j ++) {
           sigma[i][j] = 0.0; 
@@ -1702,16 +1683,16 @@ void AppRpv::stress_dislocation(int n)
 
       for(i = 0; i < 3; i ++) {
         for(j = 0; j < 3; j ++) {
-          //stres[i][j] = sigma[i][j]/d; 
+          // stres[i][j] = sigma[i][j]/d; 
           stres[i][j] = sigma[i][j]*d/(d*d + dcore*dcore); //stress converge at core distance 
         } 
       }
 
-    //calculate strain and stress 
+    // calculate strain and stress 
       for(i = 0; i < 3; i ++) {
         for(j = 0; j < 3; j ++) {
           for(ii = 0; ii < 3; ii ++) { 
-            //stran[i][j] += burgers[n][ii]*(-m[j]*smatx[i][ii] + ni[j]*temp2[i][ii])/d; 
+            // stran[i][j] += burgers[n][ii]*(-m[j]*smatx[i][ii] + ni[j]*temp2[i][ii])/d; 
             stran[i][j] += burgers[n][ii]*(-m[j]*smatx[i][ii] + ni[j]*temp2[i][ii])*d/(d*d + dcore*dcore); 
           }
         } 
@@ -1738,7 +1719,7 @@ void AppRpv::stress_dislocation(int n)
       stress[natom][4] = (stres[0][2]+stres[2][0])/2.0; 
       stress[natom][5] = (stres[1][2]+stres[2][1])/2.0; 
     
-    } //if-else
+    } 
   }
 
 }
@@ -1794,7 +1775,7 @@ void AppRpv::stress_loop(int n)
     xseg[iseg][normal] = 0.0; 
   }
   
-  //calculate stress at each lattice site
+  // calculate stress at each lattice site
   for( int natom = 0; natom < nlattice; natom ++) {   
     for( j = 0; j < 3; j ++) { 
       dij[j] = xyz[natom][j] - xdislocation[n][j]; 
@@ -1897,8 +1878,7 @@ void AppRpv::seg_stress( double A[3], double B[3], double P[3], double bv[3], do
   cross_product(ni,tau1,m1);
   cross_product(ni,tau2,m2);
 
-  //angles
-
+  // angles
   dotx = 0.0; 
   for(i = 0; i < 3; i ++)  dotx += tau1[i]*xi[i]; 
   beta1 = acos(dotx); 
@@ -1997,8 +1977,7 @@ void AppRpv::sigma_A(double t[3], double m[3], double bv[3], double sigma[3][3])
     }
   }
 
-  //calculate the angular stress factors 
-
+  // calculate the angular stress factors 
   for(i = 0; i < 3; i ++) {
     for(j = 0; j < 3; j ++)  sigma[i][j] = 0.0;
   }  
@@ -2063,7 +2042,7 @@ void AppRpv::sigma_P(double t[3], double ni[3], double bv[3], double sigmap[3][3
 
   matrix_inversion(nn,nni);
   
-  //temporaty matrix ma 
+  // temporaty matrix ma 
   for(i = 0; i < 3; i ++) {
     for(j = 0; j < 3; j ++) {
       temp1[i][j] = 0.0 ; 
@@ -2089,7 +2068,7 @@ void AppRpv::sigma_P(double t[3], double ni[3], double bv[3], double sigmap[3][3
     }
   }
 
-  //calculate the angular stress factors 
+  // calculate the angular stress factors 
 
   for(i = 0; i < 3; i ++) {
     for(j = 0; j < 3; j ++)    sigmap[i][j] = 0.0;
@@ -2326,14 +2305,14 @@ void AppRpv::stroh_p( double t[3], double n0[3], double qpmat[3][3], double bpma
       }
     }
 
-    //define Qi 
+    // define Qi 
     for(j = 0; j < 3; j ++) {
       for(k = 0; k < 3; k ++) {
         Qi[j][k] = -F[j][k]*sin(omega); 
       }
     }
 
-    //define Bi 
+    // define Bi 
     for(j = 0; j < 3; j ++) {
       for(k = 0; k < 3; k ++) {
         temp1[j][k] = tm[j][k]*sin(omega) - nt[j][k]*cos(omega); 
@@ -2347,7 +2326,7 @@ void AppRpv::stroh_p( double t[3], double n0[3], double qpmat[3][3], double bpma
       }
     }
 
-    //keep this temp1
+    // keep this temp1
     for(j = 0; j < 3; j ++) {
       for(k = 0; k < 3; k ++) {
         temp1[j][k] = 0.0; 
@@ -2368,7 +2347,7 @@ void AppRpv::stroh_p( double t[3], double n0[3], double qpmat[3][3], double bpma
       }
     }
 
-    //keep this temp4
+    // keep this temp4
     for(j = 0; j < 3; j ++) {
       for(k = 0; k < 3; k ++) {
         temp4[j][k] = 0.0; 
@@ -2443,7 +2422,7 @@ void AppRpv::elastic_tensor()
   anisotropy = fabs(2*c44 + c12 - c11);
   if(anisotropy < 1.0e-6) c44 += 1.0e-6; 
 
-  //identity matrix 
+  // identity matrix 
   for(i = 0; i < 3; i++) {
     for(j = 0; j < 3; j++) {
       if(i == j) delta[i][j] = 1; 
