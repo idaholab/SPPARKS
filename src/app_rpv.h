@@ -88,8 +88,8 @@ class AppRpv : public AppLattice {
 
 //parameter for ballistic mixing 
   int nballistic;
-  int *bfreq,*btypei,*btypej,*time_old,*time_new;
-  double *rpeak,*rdamp,*pn_local,*pn_global;
+  int *bfreq,*time_old,*time_new;
+  double *rdamp,*pn_local,*pn_global;
   double **xmix,**pmix;
 
   struct Event {           // one event for an owned site
