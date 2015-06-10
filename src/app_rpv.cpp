@@ -1243,42 +1243,44 @@ double AppRpv::total_energy( )
 }
 
 /* ----------------------------------------------------------------------
-  calculating "average" concentration at each lattice site   
+  calculating "average" concentration at each lattice site 
+  for 1NN interaction (engstyle==1): Ci(a)=0.5*ni(a)+0.5*sum(nj(a))/sum(nj)
+  for 2NN interaction (engstyle==2): Ci(a)=0.25*ni(a)+0.5*sum(nj(a))/sum(nj)+0.25*sum(nk(a))/sum(nk))
+  subscript i for corners atoms and j for 1NN and k for 2NN of i 
+  The contributions of corner and center atoms (of bcc cell) are equal 
 ------------------------------------------------------------------------- */
 
 void AppRpv::concentration_field( )
 { 
-  int i,j,jd,inn[10],total_nn;
-  double xtmp1,xtmp2;  
- 
+  int i,j,jd;
+
+  double *ci = new double[nelement];  
   for(i = 0; i < nlocal; i++) { 
-    total_nn = 0; 
-    for(j = 0; j < nelement; j++) inn[j] = 0; 
- 
-    inn[element[i]-1] ++; 
+    for(j = 0; j < nelement; j++) ci[j] = 0.0; 
+
+    ci[element[i]-1] += 0.25; 
+    if(engstyle == 1) ci[element[i]-1] += 0.25; 
+   
     for(j = 0; j < numneigh[i]; j ++) {
       jd = neighbor[i][j]; 
-      inn[element[jd]-1] ++; 
-    } 
+      ci[element[jd]-1] += 0.5*1.0/numneigh[i];
+    }
 
     if(engstyle == 2) { 
       for(j = 0; j < numneigh2[i]; j ++) {
         jd = neighbor2[i][j]; 
-        inn[element[jd]-1] ++; 
+        ci[element[jd]-1] += 0.25*1.0/numneigh2[i];
       }
     }
 
-    for(j = 0; j < nelement; j++) total_nn +=inn[j]; 
-
     for(j = ndiffusion; j < ndiffusion + concentrationflag; j++) { // count for concentrationflag elements 
-      xtmp1 = static_cast<double>(inn[j-ndiffusion]);
-      xtmp2 = static_cast<double>(total_nn);
-      disp[j][i] = xtmp1/xtmp2;
+      disp[j][i] = ci[j-ndiffusion];
     } 
-    
   } 
 
+  delete [] ci; 
 }
+
 /* ----------------------------------------------------------------------
   check if the vacancy is trapped by solute by counting its  
   first and second NNs, return 0 if any of those is non-Fe 
