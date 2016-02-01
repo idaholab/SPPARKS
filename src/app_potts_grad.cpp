@@ -5,7 +5,7 @@
 
    Copyright (2008) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
-   certain rights in this software.  This software is distributed under 
+   certain rights in this software.  This software is distributed under
    the GNU General Public License.
 
    See the README file in the top-level SPPARKS directory.
@@ -32,8 +32,8 @@ enum{NONE,LINE_2N,SQ_4N,SQ_8N,TRI,SC_6N,SC_26N,FCC,BCC,DIAMOND,
 
 /* ---------------------------------------------------------------------- */
 
-AppPottsGrad::AppPottsGrad(SPPARKS *spk, int narg, char **arg) : 
-   AppPotts(spk,narg,arg), T0(0.0), 
+AppPottsGrad::AppPottsGrad(SPPARKS *spk, int narg, char **arg) :
+   AppPotts(spk,narg,arg), T0(0.0),
    grad_x(0.0), grad_y(0.0), grad_z(0.0),
    max_T(std::numeric_limits<double>::min()),
    max_M(0.0), T(0), m0(1.0), M(0), activation_energy(1.0), convert(1.0)
@@ -204,7 +204,7 @@ double AppPottsGrad::mobility_grad(int i){
 }
 
 double AppPottsGrad::compute_mobility(double Ti,double max_T) const {
-   
+
    // Ti: site temperature
    // max_T: maximum temperature across entire domain
    // Boltzman constant k = 1.3806488 × 10^{-23} Units --> (m^2 - kg / (s^2 K)) = energy/(per degree K)
@@ -215,7 +215,7 @@ double AppPottsGrad::compute_mobility(double Ti,double max_T) const {
    double q= activation_energy;
    double max_M=m0*exp(-q/(K*max_T));
 
-   /** 
+   /**
     * The gb mobility have to be scaled to our simulations as M[i]/max_M,
     *  otherwise the simulation will run too long for no good reason.
     */
