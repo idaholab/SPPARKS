@@ -5,7 +5,7 @@
 
    Copyright (2008) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
-   certain rights in this software.  This software is distributed under 
+   certain rights in this software.  This software is distributed under
    the GNU General Public License.
 
    See the README file in the top-level SPPARKS directory.
@@ -60,7 +60,7 @@ AppLattice::AppLattice(SPPARKS *spk, int narg, char **arg) : App(spk,narg,arg)
   Lmask = false;
   mask = NULL;
 
-  allow_update = 0;
+  allow_app_update = 0;
 
   temperature = 0.0;
 
@@ -81,9 +81,9 @@ AppLattice::AppLattice(SPPARKS *spk, int narg, char **arg) : App(spk,narg,arg)
   dt_sweep = 0.0;
   naccept = nattempt = 0;
   nsweeps = 0;
-  
-  update_only = 0;
-  reaction_flag = ballistic_flag = time_flag = 0; //yongfeng  
+
+  app_update_only = 0;
+  reaction_flag = ballistic_flag = time_flag = 0; //yongfeng
 }
 
 /* ---------------------------------------------------------------------- */
@@ -119,7 +119,7 @@ void AppLattice::input(char *command, int narg, char **arg)
   if (strcmp(command,"sector") == 0) set_sector(narg,arg);
   else if (strcmp(command,"sweep") == 0) set_sweep(narg,arg);
   else if (strcmp(command,"temperature") == 0) set_temperature(narg,arg);
-  else if (strcmp(command,"update_only") == 0) set_update_only(narg,arg);
+  else if (strcmp(command,"app_update_only") == 0) set_app_update_only(narg,arg);
   else input_app(command,narg,arg);
 }
 
@@ -164,7 +164,7 @@ void AppLattice::init()
     else nsector = 8;
 
     if (dimension == 3) {
-      if (nsector == 2 && (domain->procgrid[1] != 1 || 
+      if (nsector == 2 && (domain->procgrid[1] != 1 ||
 			   domain->procgrid[2] != 1))
 	error->all(FLERR,"Invalid number of sectors");
       if (nsector == 4 && domain->procgrid[2] != 1)
@@ -240,7 +240,7 @@ void AppLattice::init()
       else create_set(m,i+1,0,NULL);
       m++;
     }
-    for (int i = 0; i < nsector; i++) 
+    for (int i = 0; i < nsector; i++)
       for (int j = 0; j < ncolors; j++) {
 	if (nset == nsetold) create_set(m,i+1,j+1,sold[m]);
         else create_set(m,i+1,j+1,NULL);
@@ -340,7 +340,7 @@ void AppLattice::setup()
     }
   }
 
-  // check reaction before simulation, yongfeng  
+  // check reaction before simulation, yongfeng
   if(reaction_flag)  check_reaction();
 
   // convert per-sector time increment info to KMC params
@@ -394,7 +394,7 @@ void AppLattice::setup()
 	}
       }
 
-    } else if (sweepflag == RASTER || 
+    } else if (sweepflag == RASTER ||
 	       sweepflag == COLOR || sweepflag == COLOR_STRICT) {
       int n;
       if (nstop > 0.0) n = static_cast<int> (nstop);
@@ -442,15 +442,15 @@ void AppLattice::iterate()
   timer->barrier_start(TIME_LOOP);
 
   if (solve) {
-    if (sectorflag == 0) 
+    if (sectorflag == 0)
       iterate_kmc_global(stoptime);
-    else if (allow_update && update_only)
-      iterate_update_only(stoptime,dt_kmc);
+    else if (allow_app_update && app_update_only)
+      iterate_app_update_only(stoptime,dt_kmc);
     else
       iterate_kmc_sector(stoptime);
   } else {
-    if (allow_update && update_only)
-      iterate_update_only(stoptime,dt_rkmc);
+    if (allow_app_update && app_update_only)
+      iterate_app_update_only(stoptime,dt_rkmc);
     else
       iterate_rejection(stoptime);
   }
@@ -466,7 +466,7 @@ void AppLattice::iterate()
 void AppLattice::iterate_kmc_global(double stoptime)
 {
   int isite;
-  
+
   // global KMC runs with one set
   // save ptr to system solver
 
@@ -483,15 +483,15 @@ void AppLattice::iterate_kmc_global(double stoptime)
 
     if (isite >= 0) {
       time += dt_step;
-      if (time_flag) { //yongfeng 
-         time_tracer(dt_step); 
+      if (time_flag) { //yongfeng
+         time_tracer(dt_step);
          realtime += dt_step*real_time(time);
       }
       if (time <= stoptime) {
 	site_event(isite,ranapp);
 	naccept++;
-        if (reaction_flag) check_reaction(); //yongfeng 
-        if (concentrationflag) concentration_field(); //yongfeng 
+        if (reaction_flag) check_reaction(); //yongfeng
+        if (concentrationflag) concentration_field(); //yongfeng
 	timer->stamp(TIME_APP);
       } else {
 	done = 1;
@@ -539,7 +539,7 @@ void AppLattice::iterate_kmc_sector(double stoptime)
       }
 
       solve = set[iset].solve;
-      
+
       propensity = set[iset].propensity;
       i2site = set[iset].i2site;
       int *site2i = set[iset].site2i;
@@ -559,10 +559,10 @@ void AppLattice::iterate_kmc_sector(double stoptime)
 	bsites[nsites++] = isite;
 	propensity[isite] = site_propensity(i);
       }
-      
+
       solve->update(nsites,bsites,propensity);
       timer->stamp(TIME_COMM);
-      
+
       // pmax = maximum sector propensity per site
 
       if (Ladapt) {
@@ -573,49 +573,49 @@ void AppLattice::iterate_kmc_sector(double stoptime)
 	  pmax = MAX(ptmp,pmax);
 	}
       }
-      
+
       // execute events until sector time threshhold reached
-      
+
       done = 0;
       timesector = 0.0;
       while (!done) {
 	timer->stamp();
 	isite = solve->event(&dt);
 	timer->stamp(TIME_SOLVE);
-	
+
 	if (isite < 0 || site2i[isite] < 0) done = 1;  // site2i[isite]
 	else {
 	  timesector += dt;
 	  if (timesector >= dt_kmc) done = 1;
 	  else {
-            if(time_flag) time_tracer(dt); //yongfeng, pass dt to app_rpv  
+            if(time_flag) time_tracer(dt); //yongfeng, pass dt to app_rpv
 	    site_event(site2i[isite],ranapp);
 	    naccept++;
 	  }
 	  timer->stamp(TIME_APP);
 	}
       }
-      
+
       if (nprocs > 1) {
 	comm->reverse_sector(iset);
 	timer->stamp(TIME_COMM);
       }
     }
 
-    if (allow_update) user_update(dt_kmc);
+    if (allow_app_update) app_update(dt_kmc);
 
     // keep looping until overall time threshhold reached
 
     nsweeps++;
     time += dt_kmc;
-    
+
     if (time_flag)
       realtime += dt_kmc / nprocs * real_time(time);
-          
+
     if (reaction_flag) check_reaction(); //yongfeng
     if (ballistic_flag) check_ballistic(time); //yongfeng
-    if (concentrationflag) concentration_field(); //yongfeng  
-    
+    if (concentrationflag) concentration_field(); //yongfeng
+
     if (time >= stoptime) alldone = 1;
     if (alldone || time >= nextoutput)
       nextoutput = output->compute(time,alldone);
@@ -674,7 +674,7 @@ void AppLattice::iterate_rejection(double stoptime)
 	site2i = set[iset].site2i;
 	nrange = set[iset].nlocal;
 	nselect = set[iset].nselect;
-	for (i = 0; i < nselect; i++) 
+	for (i = 0; i < nselect; i++)
 	  sitelist[i] = site2i[ranapp->irandom(nrange) - 1];
 	(this->*sweep)(nselect,sitelist);
 	nattempt += nselect;
@@ -710,7 +710,7 @@ void AppLattice::iterate_rejection(double stoptime)
       }
     }
 
-    if (allow_update) user_update(dt_rkmc);
+    if (allow_app_update) app_update(dt_rkmc);
 
     nsweeps++;
     time += dt_rkmc;
@@ -721,16 +721,16 @@ void AppLattice::iterate_rejection(double stoptime)
 }
 
 /* ----------------------------------------------------------------------
-   iterate the user_update routine only
-   app is responsible for doing communciation in user_update()
+   iterate the app_update routine only
+   app is responsible for doing communciation in app_update()
 ------------------------------------------------------------------------- */
 
-void AppLattice::iterate_update_only(double stoptime,double dt)
+void AppLattice::iterate_app_update_only(double stoptime,double dt)
 {
   int done = 0;
   while (!done) {
-    if (allow_update) user_update(dt);
-    
+    if (allow_app_update) app_update(dt);
+
     time += dt;
     if (time >= stoptime) done = 1;
     if (done || time >= nextoutput) nextoutput = output->compute(time,done);
@@ -866,15 +866,15 @@ void AppLattice::set_temperature(int narg, char **arg)
 
 /* ---------------------------------------------------------------------- */
 
-void AppLattice::set_update_only(int narg, char **arg)
+void AppLattice::set_app_update_only(int narg, char **arg)
 {
-  if (narg != 1) error->all(FLERR,"Illegal update_only command");
-  if (strcmp(arg[0],"yes") == 0) update_only = 1;    
-  else if (strcmp(arg[0],"no") == 0) update_only = 0;
-  else error->all(FLERR,"Illegal update_only command");
+  if (narg != 1) error->all(FLERR,"Illegal app_update_only command");
+  if (strcmp(arg[0],"yes") == 0) app_update_only = 1;
+  else if (strcmp(arg[0],"no") == 0) app_update_only = 0;
+  else error->all(FLERR,"Illegal app_update_only command");
 
-  if (update_only && !allow_update)
-    error->all(FLERR,"App does not permit user_update yes");
+  if (app_update_only && !allow_app_update)
+    error->all(FLERR,"App does not permit app_update yes");
 }
 
 /* ----------------------------------------------------------------------
@@ -998,7 +998,7 @@ void AppLattice::create_set(int iset, int isector, int icolor, Solve *oldsolve)
   if (solve) {
     memory->create(set[iset].i2site,nlocal+nghost,"app:i2site");
     for (int i = 0; i < nlocal+nghost; i++) set[iset].i2site[i] = -1;
-    for (int i = 0; i < set[iset].nlocal; i++) 
+    for (int i = 0; i < set[iset].nlocal; i++)
       set[iset].i2site[set[iset].site2i[i]] = i;
   } else set[iset].i2site = NULL;
 
@@ -1114,7 +1114,7 @@ int AppLattice::find_border_sites(int isector)
   set[isector].border = border;
   return nborder;
 }
-  
+
 /* ----------------------------------------------------------------------
    unset all mask values of owned sites in iset whose propensity
      could change due to events on sites one neighbor outside the set
@@ -1171,7 +1171,7 @@ void AppLattice::push_connected_neighbors(int i, int* cluster_ids, int id,
    add cluster id of connected ghost sites to neighbor list of cluster
  ------------------------------------------------------------------------- */
 
-void AppLattice::connected_ghosts(int i, int* cluster_ids, 
+void AppLattice::connected_ghosts(int i, int* cluster_ids,
 				  Cluster* clustlist, int idoffset)
 {
   int iclust;
@@ -1184,7 +1184,7 @@ void AppLattice::connected_ghosts(int i, int* cluster_ids,
   if (cluster_ids[i] == 0) return;
 
   iclust = cluster_ids[i]-idoffset;
-  
+
   // add ghost cluster to neighbors of local cluster
 
   for (int j = 0; j < numneigh[i]; j++) {
@@ -1200,7 +1200,7 @@ void AppLattice::connected_ghosts(int i, int* cluster_ids,
 /* ----------------------------------------------------------------------
    grow per-site arrays
    n = 0 grows arrays by DELTA
-   n > 0 allocates arrays to size n 
+   n > 0 allocates arrays to size n
 ------------------------------------------------------------------------- */
 
 void AppLattice::grow(int n)
