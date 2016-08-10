@@ -390,14 +390,14 @@ void AppRpv::input_app(char *command, int narg, char **arg)
 ------------------------------------------------------------------------- */
 
 void AppRpv::define_2NN()
-{ int candidate[64],frequency[64];
+{ int candidate[144],frequency[144];
   int i,j,k,jd,kd,n1nn,n2nn,njnn,ncandidate;
 
   memory->create(numneigh2,nlocal+nghost,"app, numneigh2");
   memory->create(neighbor2,nlocal+nghost,MAX2NN,"app, neighbor2");
   for (i = 0; i < nlocal+nghost; i++) {
-    for (j = 0; j < 64; j++) candidate[j] = 0;  
-    for (j = 0; j < 64; j++) frequency[j] = 0;  
+    for (j = 0; j < 144; j++) candidate[j] = 0;  
+    for (j = 0; j < 144; j++) frequency[j] = 0;  
   
     ncandidate = 0;
     n1nn = numneigh[i];
@@ -410,7 +410,6 @@ void AppRpv::define_2NN()
       { 
         kd = neighbor[jd][k];
         
-        //skip i itself
         if (kd != i) { 
           candidate[ncandidate] = kd; 
           ncandidate++;
@@ -424,8 +423,14 @@ void AppRpv::define_2NN()
       for (k = j+1; k < ncandidate; k++) {
         kd = candidate[k];
         if(kd == jd) frequency[j]++;
-      }  
+      } 
       if(frequency[j] == 4) {
+        int ifbreak = 0;
+  	for (int m = 0; m < n1nn; m ++) { // To screen 1NNs for fcc crystals 
+	    if(jd == neighbor[i][m]) ifbreak = 1; 
+        } 
+        if (ifbreak) continue;  
+
         if (n2nn == MAX2NN) error->all(FLERR, "Two many 2nd nearest neighbors defined, please expand the simulation cell dimensions or MAX2NN");  
         neighbor2[i][n2nn] = jd;
         n2nn++; // selected if shared by 4 NNs
