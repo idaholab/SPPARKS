@@ -83,8 +83,8 @@ AppRpv::AppRpv(SPPARKS *spk, int narg, char **arg) :
   nn1flag = nn2flag = barrierflag = time_flag = 0; //flags for bond energy and migration barriers
 
   // flags and parameters for sinks, dislocations, reactions and ballistic mixing
-  sink_flag = elastic_flag = moduli_flag = dislocation_flag = reaction_flag = 0; //flags for sink dislocation and vacancy
-  nsink = ndislocation = nreaction = nballistic = 0;
+  sink_flag = elastic_flag = moduli_flag = dislocation_flag = reaction_flag = acceleration_flag = 0; //flags for sink dislocation and vacancy
+  nsink = ndislocation = nreaction = nballistic = ntrap = 0;
 
   // arrays for dislocations
   dislocation_type = line_vector = nsegment = NULL;
@@ -183,6 +183,10 @@ AppRpv::~AppRpv()
     memory->destroy(target_global);
     memory->destroy(nsites_local);
   }
+
+  if (acceleration_flag) {// memory use for acceleraton
+    memory->destroy(trap_type);
+  }
 }
 
 /* ----------------------------------------------------------------------
@@ -254,6 +258,20 @@ void AppRpv::input_app(char *command, int narg, char **arg)
     if (narg < 1 ) error->all(FLERR,"Illegal time_tracer command");
     time_flag = 1;
     dt_interval = atof(arg[0]);
+  }
+
+  // type of solutes that trap vacancy and need acceleration
+  else if (strcmp(command, "acceleration") ==0) {
+
+    acceleration_flag = 1;
+    memory->create(trap_type,nelement+1,"app/rpv:trap_type");
+    if (narg < 1 ) error->all(FLERR,"Illegal acceleration command");
+
+    ntrap = 0;
+    while(ntrap < narg) {
+      trap_type[ntrap] = atoi(arg[ntrap]);
+      ntrap ++;
+    }
   }
 
   // elastic moduli for stress calculation
@@ -719,6 +737,19 @@ double AppRpv::site_propensity(int i)
   // propensity calculated in site_SP_energy();
   if (element[i] != VACANCY) return prob_reaction;
 
+  // check if acceleration is needed and update propensity if so
+  if (acceleration_flag == 1 ) {
+     for (j = 0; j < numneigh[i]; j++) {
+       jid = neighbor[i][j];
+
+       for ( int k = 0; k < ntrap; k ++) {
+          if (element[jid] == trap_type[k]) return add_acceleration_event(i,jid);
+       }
+     }
+  }
+
+  // for hop events, vacancy only currently
+  // propensity calculated in site_SP_energy();
   for (j = 0; j < numneigh[i]; j++) {
     jid = neighbor[i][j];
     if(element[jid] != VACANCY) { // no vacancy-vacancy switch
@@ -739,7 +770,7 @@ double AppRpv::site_propensity(int i)
 
 void AppRpv::site_event(int i, class RandomPark *random)
 {
-  int j,k,m,n,ii;
+  int j,k,l,m,n,ii;
 
   // perform events with non_zero barriers
   // pick one event from total propensity by accumulating its probability
@@ -759,14 +790,22 @@ void AppRpv::site_event(int i, class RandomPark *random)
 
   // perform hop or reaction event
   int rstyle = events[ievent].style;
-  int which = events[ievent].which;
+  int which = events[ievent].which; // type of reactions or neighbor id for acceleration
   j = events[ievent].jpartner;
 
   // switch element between site i and jpartner for hop diffusion
-  if(rstyle == 1) {
+  if(rstyle == 1 || rstyle == 3 || rstyle ==4) {
     k = element[i];
-    element[i] = element[j];
-    element[j] = k;
+    if (rstyle == 4) { // switch with a 1NN of which
+       l = element[which];
+       element[i] = l;
+       element[which] = element[j];
+       element[j] = k;
+    } else { // switch with a 1NN of i
+      element[i] = element[j];
+      element[j] = k;
+    }
+
     hcount[element[i]] ++;
 
     // calculate MSD for each atom if activated
@@ -820,7 +859,7 @@ void AppRpv::site_event(int i, class RandomPark *random)
   }
 
   // perform zero_barrier events: absorption and recombination
-  if(rstyle == 1) {
+  if(rstyle == 1 || rstyle == 3 || rstyle == 4) {
 
     //sink absorption,for hop only since no element produced at its sinks
     if(nsink > 0) {
@@ -1039,6 +1078,94 @@ void AppRpv::clear_events(int i)
     index = next;
   }
   firstevent[i] = -1;
+}
+
+/* ----------------------------------------------------------------------
+  add an acceleration event to list for site I
+  return a propensity
+------------------------------------------------------------------------- */
+
+double AppRpv::add_acceleration_event(int i, int j)
+{
+  int ni,nj,nn,nid,njd;
+  double pr,pl,texit,p1,p2,p3,p4,w1,w2,w3,w4,eb;
+
+  ni = numneigh[i];
+  nj = numneigh[j];
+  double *hpi = new double[ni];
+  double *hpj = new double[nj];
+
+  w1 = w2 = w3 = w4 = 0.0;
+  p1 = p2 = p3 = p4 = 0.0;
+
+  nn = 0;
+  w1 = exp(-site_SP_energy(i,j,engstyle)/KBT);
+  for (int m = 0; m < ni; m ++) {
+      nid = neighbor[i][m];
+      if (nid == j) continue;
+      if (element[nid] == VACANCY) { hpi[nn] = 0.0;
+      } else {
+        eb = site_SP_energy(i,nid,engstyle); // diffusion barrier
+        hpi[nn] = exp(-eb/KBT);
+      }
+      w2 += hpi[nn];
+      nn ++;
+  }
+
+  int Ei = element[i];
+  int Ej = element[j];
+  element[i] = Ej;
+  element[j] = Ei;
+
+  nn = 0;
+  w3 = exp(-site_SP_energy(j,i,engstyle)/KBT);
+  for (int n = 0; n < nj; n ++) {
+      njd = neighbor[j][n];
+      if (njd == i) continue;
+      if (element[njd] == VACANCY) { hpj[nn] = 0.0;
+      } else {
+        eb = site_SP_energy(j,njd,engstyle); // diffusion barrier
+        hpj[nn] = exp(-eb/KBT);
+      }
+      w4 += hpj[nn];
+      nn ++;
+  }
+
+  p1 = w1 / (w1+w2);
+  p2 = w2 / (w1+w2);
+  p3 = w3 / (w3+w4);
+  p4 = w4 / (w3+w4);
+
+  double t1 = 1.0/(w1+w2);
+  double t2 = 1.0/(w3+w4);
+  texit = (p2*t1 + p2*t2*p1*p3 + p1*p4*t1 + p1*p4*t2)/(1-p1*p3)/(1-p1*p3);
+  pl = p1 / (1-p1*p3);
+  pr = p1*p4 / (1-p1*p3);
+
+  // add site events
+  nn = 0;
+  for (int m = 0; m < ni; m ++) {
+      nid = neighbor[i][m];
+      if (nid == j) continue;
+      hpi[nn] *= pl;
+      hpi[nn] /= w2; // normalize the propensity
+      add_event(i,nid,3,j,hpi[nn]); // rstyle == 3 means exit left
+      nn ++;
+  }
+
+  nn = 0;
+  for (int n = 0; n < nj; n ++) {
+      njd = neighbor[j][n];
+      if (njd == i) continue;
+      hpj[nn] *= pr;
+      hpj[nn] /= w4; // normalized the propensity
+      add_event(i,njd,4,j,hpj[nn]); // rstyle == 4 means exit right
+      nn ++;
+  }
+
+  element[i] = Ei;
+  element[j] = Ej;
+  return 1.0 / texit; // return the propensity
 }
 
 /* ----------------------------------------------------------------------
