@@ -141,6 +141,7 @@ void Dump::init()
 {
   init_style();
 }
+
 /* ----------------------------------------------------------------------
    dump a snapshot of site values as atom coords
 ------------------------------------------------------------------------- */
@@ -156,17 +157,19 @@ void Dump::write(double time)
   // nmax = max # of dump lines on any proc
 
   int nme = count();
+  bigint bnme = nme;
 
-  int ntotal,nmax;
+  bigint ntotal;
+  int nmax;
   if (multiproc) nmax = nme;
   else {
-    MPI_Allreduce(&nme,&ntotal,1,MPI_INT,MPI_SUM,world);
+    MPI_Allreduce(&bnme,&ntotal,1,MPI_SPK_BIGINT,MPI_SUM,world);
     MPI_Allreduce(&nme,&nmax,1,MPI_INT,MPI_MAX,world);
   }
 
   // write timestep header
 
-  if (multiproc) write_header(nme,time);
+  if (multiproc) write_header(bnme,time);
   else write_header(ntotal,time);
 
   idump++;

@@ -41,6 +41,7 @@ class AppLattice : public App {
   void init();
   void setup();
   void iterate();
+  virtual bigint memory_usage();
 
   void grow(int);
   void add_site(tagint, double, double, double);
@@ -108,6 +109,7 @@ class AppLattice : public App {
   double tstop;                // requested time increment in sector
   double nstop;                // requested events per site in sector
 
+
                                // arrays for owned + ghost sites
   int *owner;                  // proc who owns the site
   int *index;                  // index of site on owning proc
@@ -163,7 +165,6 @@ class AppLattice : public App {
   void set_sweep(int, char **);
   void set_temperature(int, char **);
   void set_app_update_only(int, char **);
-
   void bounds(char *, int, int, int &, int &);
 };
 

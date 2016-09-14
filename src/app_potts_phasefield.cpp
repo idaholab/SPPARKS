@@ -3,16 +3,16 @@
    http://www.cs.sandia.gov/~sjplimp/spparks.html
    Steve Plimpton, sjplimp@sandia.gov, Sandia National Laboratories
  
-   Class AppPottsPhaseField - added by Eric Homer, ehomer@sandia.gov
-   Mar 31, 2011 - Most recent version.  Most of this was copied from 
-   AppPotts and AppPottsNeighOnly.
-
    Copyright (2008) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
    certain rights in this software.  This software is distributed under 
    the GNU General Public License.
 
    See the README file in the top-level SPPARKS directory.
+------------------------------------------------------------------------- */
+
+/* ----------------------------------------------------------------------
+   Contributing authors: Eric Homer (BYU)
 ------------------------------------------------------------------------- */
 
 #include "math.h"
@@ -55,16 +55,21 @@ AppPottsPhaseField::AppPottsPhaseField(SPPARKS *spk, int narg, char **arg) :
   // add the double array
 
   recreate_arrays();
+
+  // parse arguments for PottsPhaseField class only, not children
+
+  if (strcmp(style,"potts/pfm") != 0) return;
+
+  if (narg < 11) error->all(FLERR,"Illegal app_style command");
   
   // check the number of spins
 
+  nspins = atoi(arg[1]);
+  if (nspins <= 0) error->all(FLERR,"Illegal app_style command");
   if (nspins % 2)
-    error->all(FLERR,"app potts/pfm must have even # of spins");
+    error->all(FLERR,"App potts/pfm must have even # of spins");
   
   phaseChangeInt = nspins/2;
-  
-  if (narg < 11)
-    error->all(FLERR,"Illegal app_style command - app potts/pfm");
   
   // dt_phasefield is set as a multiple of dt_rkmc in setup_end_app();
   // set the multiple here. ( dt_phasefield = dt_rkmc / dt_phasefield_mult )

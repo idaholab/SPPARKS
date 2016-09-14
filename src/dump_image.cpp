@@ -88,6 +88,7 @@ DumpImage::DumpImage(SPPARKS *spk, int narg, char **arg) :
   cflag = STATIC;
   cx = cy = cz = 0.5;
   cxstr = cystr = czstr = NULL;
+  cwrap = dwrap = 0;
 
   if (domain->dimension == 3) {
     image->up[0] = 0.0; image->up[1] = 0.0; image->up[2] = 1.0;
@@ -131,7 +132,8 @@ DumpImage::DumpImage(SPPARKS *spk, int narg, char **arg) :
 	boundvalue = IARRAY;
 	boundindex = 0;
 	if (app->iarray == NULL)
-	  error->all(FLERR,"Dump image with quantity application does not support");
+	  error->all(FLERR,"Dump image with quantity application "
+                     "does not support");
       } else if (strcmp(arg[iarg+1],"x") == 0) {
 	boundvalue = X;
       } else if (strcmp(arg[iarg+1],"y") == 0) {
@@ -142,13 +144,15 @@ DumpImage::DumpImage(SPPARKS *spk, int narg, char **arg) :
 	boundvalue = IARRAY;
 	boundindex = atoi(&arg[iarg+1][1]);
 	if (boundindex < 1 || boundindex > app->ninteger)
-	  error->all(FLERR,"Dump image with quantity application does not support");
+	  error->all(FLERR,"Dump image with quantity application "
+                     "does not support");
 	boundindex--;
       } else if (arg[iarg+1][0] == 'd') {
 	boundvalue = DARRAY;
 	boundindex = atoi(&arg[iarg+1][1]);
 	if (boundindex < 1 || boundindex > app->ndouble)
-	  error->all(FLERR,"Dump image with quantity application does not support");
+	  error->all(FLERR,"Dump image with quantity application "
+                     "does not support");
 	boundindex--;
       } else error->all(FLERR,"Illegal dump image command");
 
@@ -337,7 +341,7 @@ DumpImage::DumpImage(SPPARKS *spk, int narg, char **arg) :
 
   image->buffers();
 
-  // color and diameter settings
+  // default color and diameter settings
 
   diamattribute = NULL;
   colorattribute = NULL;
@@ -395,7 +399,8 @@ DumpImage::~DumpImage()
 
 void DumpImage::init_style()
 {
-  if (multifile == 0) error->all(FLERR,"Dump image requires one snapshot per file");
+  if (multifile == 0) 
+    error->all(FLERR,"Dump image requires one snapshot per file");
 
   DumpText::init_style();
 
@@ -493,7 +498,6 @@ void DumpImage::write(double time)
   // create my portion of image for my particles
   
   int nme = count();
-
   if (nme > maxbuf) {
     maxbuf = nme;
     memory->destroy(buf);
@@ -501,6 +505,7 @@ void DumpImage::write(double time)
   }
 
   pack();
+
   if (scolor == DATTRIBUTE) image->color_minmax(nchoose,buf,size_one);
 
   // create image on each proc, then merge them
@@ -584,13 +589,15 @@ void DumpImage::view_params()
 
 void DumpImage::create_image()
 {
-  int i,j,m,n,ivalue;
+  int i,j,m,n,ivalue,nc,nd;
   double diameter;
   double *color;
 
   // render my sites
 
   double **xyz = app->xyz;
+  if (crange == YES) nc = chi-clo+1;
+  if (drange == YES) nd = dhi-dlo+1;
 
   m = 0;
   for (i = 0; i < nchoose; i++) {
@@ -598,8 +605,12 @@ void DumpImage::create_image()
     
     if (scolor == IATTRIBUTE) {
       ivalue = static_cast<int> (buf[m]);
-      ivalue = MAX(ivalue,clo);
-      ivalue = MIN(ivalue,chi);
+      if (cwrap) {
+        ivalue = (ivalue-clo) % nc + clo;
+      } else {
+        ivalue = MAX(ivalue,clo);
+        ivalue = MIN(ivalue,chi);
+      }
       color = colorattribute[ivalue-clo];
     } else if (scolor == DATTRIBUTE) {
       color = image->value2color(buf[m]);
@@ -609,8 +620,12 @@ void DumpImage::create_image()
       diameter = sdiamvalue;
     } else if (sdiam == IATTRIBUTE) {
       ivalue = static_cast<int> (buf[m+1]);
-      ivalue = MAX(ivalue,dlo);
-      ivalue = MIN(ivalue,dhi);
+      if (dwrap) {
+        ivalue = (ivalue-dlo) % nd + dlo;
+      } else {
+        ivalue = MAX(ivalue,dlo);
+        ivalue = MIN(ivalue,dhi);
+      }
       diameter = diamattribute[ivalue-dlo];
     } else if (sdiam == DATTRIBUTE) {
       diameter = buf[m+1];
@@ -803,6 +818,22 @@ int DumpImage::modify_param(int narg, char **arg)
     int flag = image->addcolor(arg[1],atof(arg[2]),atof(arg[3]),atof(arg[4]));
     if (flag) error->all(FLERR,"Illegal dump_modify command");
     return 5;
+  }
+
+  if (strcmp(arg[0],"cwrap") == 0) {
+    if (narg < 2) error->all(FLERR,"Illegal dump_modify command");
+    if (strcmp(arg[1],"yes") == 0) cwrap = 1;
+    else if (strcmp(arg[1],"no") == 0) cwrap = 0;
+    else error->all(FLERR,"Illegal dump_modify command");
+    return 2;
+  }
+
+  if (strcmp(arg[0],"dwrap") == 0) {
+    if (narg < 2) error->all(FLERR,"Illegal dump_modify command");
+    if (strcmp(arg[1],"yes") == 0) dwrap = 1;
+    else if (strcmp(arg[1],"no") == 0) dwrap = 0;
+    else error->all(FLERR,"Illegal dump_modify command");
+    return 2;
   }
 
   if (strcmp(arg[0],"scolor") == 0) {
