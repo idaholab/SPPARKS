@@ -1,0 +1,9 @@
+*.lo
+*.d
+src/STUBS/*.a
+src/STUBS/*.o
+src/log.spparks
+src/spk_*
+src/Obj_*
+src/.libs
+src/style_*.h
