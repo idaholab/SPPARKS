@@ -128,6 +128,7 @@ AppRpv::~AppRpv()
   memory->destroy(ebond1);
   memory->destroy(ebond2);
   memory->destroy(mbarrier);
+  memory->destroy(nsites_local);
 
   if (engstyle == 2) {// memory use for 2NNs
     memory->destroy(numneigh2);
