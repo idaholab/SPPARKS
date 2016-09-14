@@ -92,6 +92,10 @@ class AppRpv : public AppLattice {
   double *rdamp,*pn_local,*pn_global;
   double **xmix,**pmix;
 
+//parameter for acceleration 
+  int ntrap; 
+  int *trap_type;
+
   struct Event {           // one event for an owned site
     int style;             // reaction style = HOP,RECOMBINE 
     int which;             // which reaction of this type
@@ -111,6 +115,7 @@ class AppRpv : public AppLattice {
   void clear_events(int);
   void add_event(int, int, int, int, double);
   void update_propensity(int);
+  double add_acceleration_event(int, int); // add acceleration event and return a probability
   double total_energy();
   double sites_energy(int, int);
   double site_SP_energy(int, int, int);

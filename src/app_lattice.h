@@ -97,6 +97,7 @@ class AppLattice : public App {
   int reaction_flag;           // 1 if app supports reactions  
   int ballistic_flag;          // 1 if app supports ballistic mixing  
   int time_flag;               // flag for time tracer by monomers 
+  int acceleration_flag;       // flag for accelerated KMC 
   int concentrationflag;       // flag for concentration field calculation  
 
   int sweepflag;               // set if rejection KMC solver
