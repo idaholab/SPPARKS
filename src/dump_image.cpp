@@ -5,7 +5,7 @@
 
    Copyright (2008) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
-   certain rights in this software.  This software is distributed under 
+   certain rights in this software.  This software is distributed under
    the GNU General Public License.
 
    See the README file in the top-level SPPARKS directory.
@@ -47,7 +47,7 @@ enum{INT,DOUBLE,BIGINT};                              // in other dump files
 
 /* ---------------------------------------------------------------------- */
 
-DumpImage::DumpImage(SPPARKS *spk, int narg, char **arg) : 
+DumpImage::DumpImage(SPPARKS *spk, int narg, char **arg) :
   DumpText(spk, narg, arg)
 {
   if (binary || multiproc) error->all(FLERR,"Invalid dump image filename");
@@ -180,7 +180,7 @@ DumpImage::DumpImage(SPPARKS *spk, int narg, char **arg) :
       if (iarg+3 > narg) error->all(FLERR,"Illegal dump image command");
       int width = atoi(arg[iarg+1]);
       int height = atoi(arg[iarg+2]);
-      if (width <= 0 || height <= 0) 
+      if (width <= 0 || height <= 0)
 	error->all(FLERR,"Illegal dump image command");
       image->width = width;
       image->height = height;
@@ -373,7 +373,7 @@ DumpImage::DumpImage(SPPARKS *spk, int narg, char **arg) :
   // viewflag = DYNAMIC if any view parameter is dynamic
 
   viewflag = STATIC;
-  if (thetastr || phistr || cflag == DYNAMIC || 
+  if (thetastr || phistr || cflag == DYNAMIC ||
       upxstr || upystr || upzstr || zoomstr || perspstr) viewflag = DYNAMIC;
 
   if (cflag == STATIC) box_center();
@@ -399,7 +399,7 @@ DumpImage::~DumpImage()
 
 void DumpImage::init_style()
 {
-  if (multifile == 0) 
+  if (multifile == 0)
     error->all(FLERR,"Dump image requires one snapshot per file");
 
   DumpText::init_style();
@@ -408,70 +408,70 @@ void DumpImage::init_style()
 
   if (thetastr) {
     thetavar = input->variable->find(thetastr);
-    if (thetavar < 0) 
+    if (thetavar < 0)
       error->all(FLERR,"Variable name for dump image theta does not exist");
     if (!input->variable->equalstyle(thetavar))
       error->all(FLERR,"Variable for dump image theta is invalid style");
   }
   if (phistr) {
     phivar = input->variable->find(phistr);
-    if (phivar < 0) 
+    if (phivar < 0)
       error->all(FLERR,"Variable name for dump image phi does not exist");
     if (!input->variable->equalstyle(phivar))
       error->all(FLERR,"Variable for dump image phi is invalid style");
   }
   if (cxstr) {
     cxvar = input->variable->find(cxstr);
-    if (cxvar < 0) 
+    if (cxvar < 0)
       error->all(FLERR,"Variable name for dump image center does not exist");
     if (!input->variable->equalstyle(cxvar))
       error->all(FLERR,"Variable for dump image center is invalid style");
   }
   if (cystr) {
     cyvar = input->variable->find(cystr);
-    if (cyvar < 0) 
+    if (cyvar < 0)
       error->all(FLERR,"Variable name for dump image center does not exist");
     if (!input->variable->equalstyle(cyvar))
       error->all(FLERR,"Variable for dump image center is invalid style");
   }
   if (czstr) {
     czvar = input->variable->find(czstr);
-    if (czvar < 0) 
+    if (czvar < 0)
       error->all(FLERR,"Variable name for dump image center does not exist");
     if (!input->variable->equalstyle(czvar))
       error->all(FLERR,"Variable for dump image center is invalid style");
   }
   if (upxstr) {
     upxvar = input->variable->find(upxstr);
-    if (upxvar < 0) 
+    if (upxvar < 0)
       error->all(FLERR,"Variable name for dump image center does not exist");
     if (!input->variable->equalstyle(upxvar))
       error->all(FLERR,"Variable for dump image center is invalid style");
   }
   if (upystr) {
     upyvar = input->variable->find(upystr);
-    if (upyvar < 0) 
+    if (upyvar < 0)
       error->all(FLERR,"Variable name for dump image center does not exist");
     if (!input->variable->equalstyle(upyvar))
       error->all(FLERR,"Variable for dump image center is invalid style");
   }
   if (upzstr) {
     upzvar = input->variable->find(upzstr);
-    if (upzvar < 0) 
+    if (upzvar < 0)
       error->all(FLERR,"Variable name for dump image center does not exist");
     if (!input->variable->equalstyle(upzvar))
       error->all(FLERR,"Variable for dump image center is invalid style");
   }
   if (zoomstr) {
     zoomvar = input->variable->find(zoomstr);
-    if (zoomvar < 0) 
+    if (zoomvar < 0)
       error->all(FLERR,"Variable name for dump image zoom does not exist");
     if (!input->variable->equalstyle(zoomvar))
       error->all(FLERR,"Variable for dump image zoom is invalid style");
   }
   if (perspstr) {
     perspvar = input->variable->find(perspstr);
-    if (perspvar < 0) 
+    if (perspvar < 0)
       error->all(FLERR,"Variable name for dump image persp does not exist");
     if (!input->variable->equalstyle(perspvar))
       error->all(FLERR,"Variable for dump image persp is invalid style");
@@ -496,7 +496,7 @@ void DumpImage::write(double time)
   // pack buf with x,y,z,color,diameter
   // set minmax color range if using color map
   // create my portion of image for my particles
-  
+
   int nme = count();
   if (nme > maxbuf) {
     maxbuf = nme;
@@ -584,7 +584,7 @@ void DumpImage::view_params()
 
 /* ----------------------------------------------------------------------
    create image for atoms on this proc
-   every pixel has depth 
+   every pixel has depth
 ------------------------------------------------------------------------- */
 
 void DumpImage::create_image()
@@ -602,7 +602,7 @@ void DumpImage::create_image()
   m = 0;
   for (i = 0; i < nchoose; i++) {
     j = clist[i];
-    
+
     if (scolor == IATTRIBUTE) {
       ivalue = static_cast<int> (buf[m]);
       if (cwrap) {
@@ -683,8 +683,8 @@ void DumpImage::create_image()
 	if (xyz[i][0] != xyz[j][0]) {
 	  if (fabs(xyz[i][0]-xyz[j][0]) < 0.5*domain->xprd)
 	    c1[0] = c2[0] = c3[0] = c4[0] = 0.5*(xyz[i][0]+xyz[j][0]);
-	  else 
-	    c1[0] = c2[0] = c3[0] = c4[0] = 
+	  else
+	    c1[0] = c2[0] = c3[0] = c4[0] =
 	      0.5*(xyz[i][0]+xyz[j][0]-domain->xprd);
 	  c1[1] = xyz[i][1] - 0.5*dy; c1[2] = xyz[i][2] - 0.5*dz;
 	  c2[1] = xyz[i][1] - 0.5*dy; c2[2] = xyz[i][2] + 0.5*dz;
@@ -693,8 +693,8 @@ void DumpImage::create_image()
 	} else if (xyz[i][1] != xyz[j][1]) {
 	  if (fabs(xyz[i][1]-xyz[j][1]) < 0.5*domain->yprd)
 	    c1[1] = c2[1] = c3[1] = c4[1] = 0.5*(xyz[i][1]+xyz[j][1]);
-	  else 
-	    c1[1] = c2[1] = c3[1] = c4[1] = 
+	  else
+	    c1[1] = c2[1] = c3[1] = c4[1] =
 	      0.5*(xyz[i][1]+xyz[j][1]-domain->yprd);
 	  c1[0] = xyz[i][0] - 0.5*dx; c1[2] = xyz[i][2] - 0.5*dz;
 	  c2[0] = xyz[i][0] - 0.5*dx; c2[2] = xyz[i][2] + 0.5*dz;
@@ -704,14 +704,14 @@ void DumpImage::create_image()
 	  if (fabs(xyz[i][2]-xyz[j][2]) < 0.5*domain->zprd)
 	    c1[2] = c2[2] = c3[2] = c4[2] = 0.5*(xyz[i][2]+xyz[j][2]);
 	  else
-	    c1[2] = c2[2] = c3[2] = c4[2] = 
+	    c1[2] = c2[2] = c3[2] = c4[2] =
 	      0.5*(xyz[i][2]+xyz[j][2]-domain->zprd);
 	  c1[0] = xyz[i][0] - 0.5*dx; c1[1] = xyz[i][1] - 0.5*dy;
 	  c2[0] = xyz[i][0] - 0.5*dx; c2[1] = xyz[i][1] + 0.5*dy;
 	  c3[0] = xyz[i][0] + 0.5*dx; c3[1] = xyz[i][1] + 0.5*dy;
 	  c4[0] = xyz[i][0] + 0.5*dx; c4[1] = xyz[i][1] - 0.5*dy;
 	}
-	
+
 	image->draw_cylinder(c1,c2,boundcolor,bounddiam,3);
 	image->draw_cylinder(c2,c3,boundcolor,bounddiam,3);
 	image->draw_cylinder(c3,c4,boundcolor,bounddiam,3);
@@ -786,7 +786,7 @@ int DumpImage::modify_param(int narg, char **arg)
 {
   int n = DumpText::modify_param(narg,arg);
   if (n) return n;
-  
+
   if (strcmp(arg[0],"backcolor") == 0) {
     if (narg < 2) error->all(FLERR,"Illegal dump_modify command");
     double *color = image->color2rgb(arg[1]);
@@ -808,7 +808,7 @@ int DumpImage::modify_param(int narg, char **arg)
   if (strcmp(arg[0],"boxcolor") == 0) {
     if (narg < 2) error->all(FLERR,"Illegal dump_modify command");
     image->boxcolor = image->color2rgb(arg[1]);
-    if (image->boxcolor == NULL) 
+    if (image->boxcolor == NULL)
       error->all(FLERR,"Invalid color in dump_modify command");
     return 2;
   }
@@ -849,7 +849,7 @@ int DumpImage::modify_param(int narg, char **arg)
     // assign random RGB values to each attribute
 
     if (strcmp(arg[2],"random") == 0) {
-      RandomPark *randomcolor = new RandomPark(ranmaster->uniform()); 
+      RandomPark *randomcolor = new RandomPark(ranmaster->uniform());
       for (int i = nlo; i <= nhi; i++) {
 	double *rgb;
 	if (color_memflag[i-clo] == 0) rgb = new double[3];
@@ -879,7 +879,7 @@ int DumpImage::modify_param(int narg, char **arg)
       ptrs[ncount++] = strtok(arg[2],"/");
       while (ptrs[ncount++] = strtok(NULL,"/"));
       ncount--;
-      
+
       int m = 0;
       for (int i = nlo; i <= nhi; i++) {
 	if (color_memflag[i-clo] == 1) delete [] colorattribute[i-clo];
@@ -924,7 +924,7 @@ int DumpImage::modify_param(int narg, char **arg)
     if (flag) error->all(FLERR,"Illegal dump_modify command");
     return n;
   }
-  
+
   return 0;
 }
 

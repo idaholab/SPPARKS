@@ -46,7 +46,7 @@ keyword = {delay} or {delta} or {fileper} or {first} or {flush} or {logfreq} or 
     Nx,Ny,Nz = site extent in x,y,z dimensions
     minval,maxval = min/max of any site's value
 these keywords apply only to the {image} "style"_dump_image.html :l
-keyword = {backcolor} or {boundcolor} or {boxcolor} or {color} or {cwrap} or 
+keyword = {backcolor} or {boundcolor} or {boxcolor} or {color} or {cwrap} or
 {dwrap} or {scolor} or {sdiam} or {smap} :l
   {backcolor} arg = color
     color = name of color for background

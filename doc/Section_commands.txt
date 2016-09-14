@@ -38,14 +38,14 @@ simulation with all the settings.  Rather, the input script is read
 one line at a time and each command takes effect when it is read.
 Thus this sequence of commands:
 
-count	 ligand 10000 
-run      100 
+count	 ligand 10000
+run      100
 run      100 :pre
 
 does something different than this sequence:
 
-run      100 
-count	 ligand 10000 
+run      100
+count	 ligand 10000
 run      100 :pre
 
 In the first case, the count of ligand molecules is set to 10000

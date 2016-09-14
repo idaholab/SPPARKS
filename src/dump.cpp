@@ -5,7 +5,7 @@
 
    Copyright (2008) Sandia Corporation.  Under the terms of Contract
    DE-AC04-94AL85000 with Sandia Corporation, the U.S. Government retains
-   certain rights in this software.  This software is distributed under 
+   certain rights in this software.  This software is distributed under
    the GNU General Public License.
 
    See the README file in the top-level SPPARKS directory.
@@ -190,14 +190,14 @@ void Dump::init()
                  "Cannot dump sort when multiple dump files are written");
     if (sortcol && sortcol > size_one)
       error->all(FLERR,"Dump sort column is invalid");
-    if (app->nglobal > MAXSMALLINT) 
+    if (app->nglobal > MAXSMALLINT)
       error->all(FLERR,"Too many sites to dump sort");
 
     if (nprocs > 1 && irregular == NULL) irregular = new Irregular(spk);
 
     // set reorderflag = 1 if can simply reorder local sites rather than sort
     // criteria: sorting by ID, site IDs are consecutive from 1 to Nsite
-    //           min/max IDs 
+    //           min/max IDs
     // compute ntotal_reorder, nme_reorder, idlo/idhi to test against later
 
     reorderflag = 0;
@@ -321,11 +321,11 @@ void Dump::write(double time)
         MPI_Get_count(&status,MPI_DOUBLE,&nlines);
         nlines /= size_one;
       } else nlines = nme;
-      
+
       write_data(nlines,buf);
     }
     if (flush_flag) fflush(fp);
-    
+
   } else {
     MPI_Recv(&tmp,0,MPI_INT,fileproc,0,world,&status);
     MPI_Rsend(buf,nme*size_one,MPI_DOUBLE,fileproc,0,world);
@@ -660,7 +660,7 @@ void Dump::modify_params(int narg, char **arg)
                    "without % in dump file name");
       int nper = atoi(arg[iarg+1]);
       if (nper <= 0) error->all(FLERR,"Illegal dump_modify command");
-      
+
       multiproc = nprocs/nper;
       if (nprocs % nper) multiproc++;
       fileproc = me/nper * nper;
@@ -724,7 +724,7 @@ void Dump::modify_params(int narg, char **arg)
       fileproc = static_cast<int> ((bigint) icluster * nprocs/nfile);
       int fcluster = static_cast<int> ((bigint) fileproc * nfile/nprocs);
       if (fcluster < icluster) fileproc++;
-      int fileprocnext = 
+      int fileprocnext =
         static_cast<int> ((bigint) (icluster+1) * nprocs/nfile);
       fcluster = static_cast<int> ((bigint) fileprocnext * nfile/nprocs);
       if (fcluster < icluster+1) fileprocnext++;

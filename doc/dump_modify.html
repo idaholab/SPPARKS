@@ -1,5 +1,5 @@
 <HTML>
-<CENTER><A HREF = "http://spparks.sandia.gov">SPPARKS WWW Site</A> - <A HREF = "Manual.html">SPPARKS Documentation</A> - <A HREF = "Section_commands.html#comm">SPPARKS Commands</A> 
+<CENTER><A HREF = "http://spparks.sandia.gov">SPPARKS WWW Site</A> - <A HREF = "Manual.html">SPPARKS Documentation</A> - <A HREF = "Section_commands.html#comm">SPPARKS Commands</A>
 </CENTER>
 
 
@@ -9,19 +9,19 @@
 
 <HR>
 
-<H3>dump_modify command 
+<H3>dump_modify command
 </H3>
 <P><B>Syntax:</B>
 </P>
-<PRE>dump_modify dump-ID keyword values ... 
+<PRE>dump_modify dump-ID keyword values ...
 </PRE>
-<UL><LI>dump-ID = ID of dump to modify 
+<UL><LI>dump-ID = ID of dump to modify
 
-<LI>one or more keyword/value pairs may be appended 
+<LI>one or more keyword/value pairs may be appended
 
-<LI>these keywords apply to various dump styles 
+<LI>these keywords apply to various dump styles
 
-<LI>keyword = <I>delay</I> or <I>delta</I> or <I>fileper</I> or <I>first</I> or <I>flush</I> or <I>logfreq</I> or <I>loglinfreq</I> or <I>nfile</I> or <I>pad</I> or <I>region</I> or <I>sort</I> or <I>thresh</I> or <I>vtk</I> 
+<LI>keyword = <I>delay</I> or <I>delta</I> or <I>fileper</I> or <I>first</I> or <I>flush</I> or <I>logfreq</I> or <I>loglinfreq</I> or <I>nfile</I> or <I>pad</I> or <I>region</I> or <I>sort</I> or <I>thresh</I> or <I>vtk</I>
 
 <PRE>  <I>delay</I> value = tdelay
     tdelay = delay dump until at least this time (seconds)
@@ -48,15 +48,15 @@
     attribute = same fields (id,lattice,x,etc) used by <A HREF = "dump.html">dump</A> command
     operation = "<" or "<=" or ">" or ">=" or "==" or "!="
     value = numeric value to compare to
-    these 3 args can be replaced by the word "none" to turn off thresholding 
+    these 3 args can be replaced by the word "none" to turn off thresholding
 </PRE>
 <LI>  <I>vtk</I> args = Nx Ny Nz minval maxval
     Nx,Ny,Nz = site extent in x,y,z dimensions
     minval,maxval = min/max of any site's value
-these keywords apply only to the <I>image</I> <A HREF = "dump_image.html">style</A> 
+these keywords apply only to the <I>image</I> <A HREF = "dump_image.html">style</A>
 
-<LI>keyword = <I>backcolor</I> or <I>boundcolor</I> or <I>boxcolor</I> or <I>color</I> or <I>cwrap</I> or 
-<I>dwrap</I> or <I>scolor</I> or <I>sdiam</I> or <I>smap</I> 
+<LI>keyword = <I>backcolor</I> or <I>boundcolor</I> or <I>boxcolor</I> or <I>color</I> or <I>cwrap</I> or
+<I>dwrap</I> or <I>scolor</I> or <I>sdiam</I> or <I>smap</I>
 
 <PRE>  <I>backcolor</I> arg = color
     color = name of color for background
@@ -96,7 +96,7 @@ these keywords apply only to the <I>image</I> <A HREF = "dump_image.html">style<
       lo/hi = number or <I>min</I> or <I>max</I> = lower/upper bound of subset of range
       color = name of color used for that subset of values
     entry = color (for sequential style)
-      color = name of color used for a bin of values 
+      color = name of color used for a bin of values
 </PRE>
 
 </UL>
@@ -104,7 +104,7 @@ these keywords apply only to the <I>image</I> <A HREF = "dump_image.html">style<
 </P>
 <PRE>dump_modify 1 delay 30.0
 dump_modify 1 loglinfreq 7 10.0 delay 100.0 flush yes
-dump_modify mine thresh energy > 0.0 thresh id <= 1000 
+dump_modify mine thresh energy > 0.0 thresh id <= 1000
 </PRE>
 <P><B>Description:</B>
 </P>
@@ -519,7 +519,7 @@ details.
 <LI>scolor = * c1/c2/.../c140 where c1-c140 are the names of the 140 pre-defined colors
 <LI>sdiam = * 1.0
 <LI>smap = min max cf 2 min blue max red
-<LI>thresh = none 
+<LI>thresh = none
 </UL>
 <HR>
 
@@ -557,7 +557,7 @@ Divide each value by 255 to get the equivalent 0.0 to 1.0 value.
 <TR><TD >seashell = 255, 245, 238 </TD><TD >sienna = 160, 82, 45 </TD><TD >silver = 192, 192, 192 </TD><TD >skyblue = 135, 206, 235 </TD><TD >slateblue = 106, 90, 205 </TD></TR>
 <TR><TD >slategray = 112, 128, 144 </TD><TD >snow = 255, 250, 250 </TD><TD >springgreen = 0, 255, 127 </TD><TD >steelblue = 70, 130, 180 </TD><TD >tan = 210, 180, 140 </TD></TR>
 <TR><TD >teal = 0, 128, 128 </TD><TD >thistle = 216, 191, 216 </TD><TD >tomato = 253, 99, 71 </TD><TD >turquoise = 64, 224, 208 </TD><TD >violet = 238, 130, 238 </TD></TR>
-<TR><TD >wheat = 245, 222, 179 </TD><TD >white = 255, 255, 255 </TD><TD >whitesmoke = 245, 245, 245 </TD><TD >yellow = 255, 255, 0 </TD><TD >yellowgreen = 154, 205, 50 
+<TR><TD >wheat = 245, 222, 179 </TD><TD >white = 255, 255, 255 </TD><TD >whitesmoke = 245, 245, 245 </TD><TD >yellow = 255, 255, 0 </TD><TD >yellowgreen = 154, 205, 50
 </TD></TR></TABLE></DIV>
 
 </HTML>

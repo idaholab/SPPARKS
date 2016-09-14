@@ -1,7 +1,7 @@
 <HTML>
 <CENTER><A HREF = "Section_start.html">Previous Section</A> - <A HREF = "http://spparks.sandia.gov">SPPARKS WWW Site</A> -
 <A HREF = "Manual.html">SPPARKS Documentation</A> - <A HREF = "Section_commands.html#comm">SPPARKS Commands</A> - <A HREF = "Section_howto.html">Next
-Section</A> 
+Section</A>
 </CENTER>
 
 
@@ -11,7 +11,7 @@ Section</A>
 
 <HR>
 
-<H3>3. Commands 
+<H3>3. Commands
 </H3>
 <P>This section describes how a SPPARKS input script is formatted and
 what commands are used to define a simulation.
@@ -24,7 +24,7 @@ what commands are used to define a simulation.
 
 <HR>
 
-<A NAME = "cmd_1"></A><H4>3.1 SPPARKS input script 
+<A NAME = "cmd_1"></A><H4>3.1 SPPARKS input script
 </H4>
 <P>SPPARKS executes by reading commands from a input script (text file),
 one line at a time.  When the input script ends, SPPARKS exits.  Each
@@ -41,15 +41,15 @@ simulation with all the settings.  Rather, the input script is read
 one line at a time and each command takes effect when it is read.
 Thus this sequence of commands:
 </P>
-<PRE>count	 ligand 10000 
-run      100 
-run      100 
+<PRE>count	 ligand 10000
+run      100
+run      100
 </PRE>
 <P>does something different than this sequence:
 </P>
-<PRE>run      100 
-count	 ligand 10000 
-run      100 
+<PRE>run      100
+count	 ligand 10000
+run      100
 </PRE>
 <P>In the first case, the count of ligand molecules is set to 10000
 before the first simulation and whatever the count becomes will be
@@ -74,7 +74,7 @@ command lists restrictions on how the command can be used.
 </P>
 <HR>
 
-<A NAME = "cmd_2"></A><H4>3.2 Parsing rules 
+<A NAME = "cmd_2"></A><H4>3.2 Parsing rules
 </H4>
 <P>Each non-blank line in the input script is treated as a command.
 SPPARKS commands are case sensitive.  Command names are lower-case, as
@@ -117,7 +117,7 @@ comment or substituted for as a variable.
 </P>
 <HR>
 
-<H4><A NAME = "cmd_3"></A>3.3 Input script structure 
+<H4><A NAME = "cmd_3"></A>3.3 Input script structure
 </H4>
 <P>This section describes the structure of a typical SPPARKS input
 script.  The "examples" directory in the SPPARKS distribution contains
@@ -129,7 +129,7 @@ sample input scripts; the corresponding problems are discussed in
 </P>
 <UL><LI>choice of application, solver, sweeper
 <LI>settings
-<LI>run a simulation 
+<LI>run a simulation
 </UL>
 <P>The last 2 parts can be repeated as many times as desired.  I.e. run a
 simulation, change some settings, run some more, etc.  Each of the 3
@@ -162,7 +162,7 @@ setup various diagnostic computations to perform during a simulation.
 </P>
 <HR>
 
-<A NAME = "cmd_4"></A><H4>3.4 Commands listed by category 
+<A NAME = "cmd_4"></A><H4>3.4 Commands listed by category
 </H4>
 <P>This section lists all SPPARKS commands, grouped by category.  The
 <A HREF = "#cmd_5">next section</A> lists the same commands alphabetically.  Note that
@@ -239,7 +239,7 @@ documentation.
 </P>
 <HR>
 
-<H4><A NAME = "cmd_5"></A><A NAME = "comm"></A>3.5 Individual commands 
+<H4><A NAME = "cmd_5"></A><A NAME = "comm"></A>3.5 Individual commands
 </H4>
 <P>This section lists all SPPARKS commands alphabetically, with a
 separate listing below of styles within certain commands.  The
@@ -301,7 +301,7 @@ one-line descriptions of each style or click on the style itself for a
 full description:
 </P>
 <DIV ALIGN=center><TABLE  BORDER=1 >
-<TR ALIGN="center"><TD ><A HREF = "pair_lj.html">lj/cut</A> 
+<TR ALIGN="center"><TD ><A HREF = "pair_lj.html">lj/cut</A>
 </TD></TR></TABLE></DIV>
 
 <HR>
