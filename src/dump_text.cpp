@@ -28,9 +28,9 @@ using namespace SPPARKS_NS;
 
 // customize by adding keyword to 1st enum
 
-enum{ID,SITE,X,Y,Z,ENERGY,PROPENSITY,IARRAY,DARRAY};  // also in dump_image
+enum{ID,SITE,X,Y,Z,ENERGY,PROPENSITY,IARRAY,DARRAY};  // in other dump files
 enum{LT,LE,GT,GE,EQ,NEQ};
-enum{INT,DOUBLE,TAGINT};           // also in dump_image
+enum{INT,DOUBLE,TAGINT};           // in other dump files
 
 #define MAXLINE 1024
 
@@ -58,6 +58,7 @@ DumpText::DumpText(SPPARKS *spk, int narg, char **arg) : Dump(spk, narg, arg)
   // size_one may be shrunk below if additional optional args exist
 
   size_one = narg - 4;
+  fields = new int[size_one];
   vtype = new int[size_one];
   vindex = new int[size_one];
   vformat = new char*[size_one];
@@ -87,6 +88,7 @@ DumpText::DumpText(SPPARKS *spk, int narg, char **arg) : Dump(spk, narg, arg)
 
   // setup column string
   // change "site" to "type" to be LAMMPS compatible
+  // in column_orig, keep it as "site"
 
   int n = 0;
   for (int iarg = 4; iarg < narg; iarg++) n += strlen(argcopy[iarg]) + 2;
@@ -95,7 +97,14 @@ DumpText::DumpText(SPPARKS *spk, int narg, char **arg) : Dump(spk, narg, arg)
   for (int iarg = 4; iarg < narg; iarg++) {
     if (strstr(argcopy[iarg],"site")) strcat(columns,"type");
     else strcat(columns,argcopy[iarg]);
-    strcat(columns," ");
+    if (iarg != narg-1) strcat(columns," ");
+  }
+
+  columns_orig = new char[n];
+  strcpy(columns_orig,columns);
+  while (strstr(columns_orig,"type")) {
+    char *ptr = strstr(columns_orig,"type");
+    strncpy(ptr,"site",4);
   }
 
   // delete argcopy if default output created
@@ -135,6 +144,7 @@ DumpText::DumpText(SPPARKS *spk, int narg, char **arg) : Dump(spk, narg, arg)
 DumpText::~DumpText()
 {
   delete [] columns;
+  delete [] columns_orig;
 
   delete [] idregion;
   memory->sfree(thresh_array);
@@ -146,6 +156,7 @@ DumpText::~DumpText()
   memory->sfree(dchoose);
   memory->sfree(clist);
 
+  delete [] fields;
   delete [] vtype;
   delete [] vindex;
   for (int i = 0; i < size_one; i++) delete [] vformat[i];
@@ -316,9 +327,15 @@ int DumpText::count()
 
 /* ---------------------------------------------------------------------- */
 
-void DumpText::pack()
+void DumpText::pack(tagint *ids)
 {
   for (int n = 0; n < size_one; n++) (this->*pack_choice[n])(n);
+
+  if (ids) {
+    tagint *id = app->id;
+    for (int i = 0; i < nchoose; i++)
+      ids[i] = id[clist[i]];
+  }
 }
 
 /* ---------------------------------------------------------------------- */
@@ -410,26 +427,33 @@ int DumpText::parse_fields(int narg, char **arg)
     i = iarg-4;
 
     if (strcmp(arg[iarg],"id") == 0) {
+      fields[i] = ID;
       pack_choice[i] = &DumpText::pack_id;
       vtype[i] = TAGINT;
     } else if (strcmp(arg[iarg],"site") == 0) {
+      fields[i] = SITE;
       pack_choice[i] = &DumpText::pack_site;
       vtype[i] = INT;
       if (app->iarray == NULL)
 	error->all(FLERR,"Dumping a quantity application does not support");
     } else if (strcmp(arg[iarg],"x") == 0) {
+      fields[i] = X;
       pack_choice[i] = &DumpText::pack_x;
       vtype[i] = DOUBLE;
     } else if (strcmp(arg[iarg],"y") == 0) {
+      fields[i] = Y;
       pack_choice[i] = &DumpText::pack_y;
       vtype[i] = DOUBLE;
     } else if (strcmp(arg[iarg],"z") == 0) {
+      fields[i] = Z;
       pack_choice[i] = &DumpText::pack_z;
       vtype[i] = DOUBLE;
     } else if (strcmp(arg[iarg],"energy") == 0) {
+      fields[i] = ENERGY;
       pack_choice[i] = &DumpText::pack_energy;
       vtype[i] = DOUBLE;
     } else if (strcmp(arg[iarg],"propensity") == 0) {
+      fields[i] = PROPENSITY;
       pack_choice[i] = &DumpText::pack_propensity;
       vtype[i] = DOUBLE;
 
@@ -437,6 +461,7 @@ int DumpText::parse_fields(int narg, char **arg)
     // double value = dN
 
     } else if (arg[iarg][0] == 'i') {
+      fields[i] = IARRAY;
       pack_choice[i] = &DumpText::pack_iarray;
       vtype[i] = INT;
       vindex[i] = atoi(&arg[iarg][1]);
@@ -444,6 +469,7 @@ int DumpText::parse_fields(int narg, char **arg)
 	error->all(FLERR,"Invalid keyword in dump command");
       vindex[i]--;
     } else if (arg[iarg][0] == 'd') {
+      fields[i] = DARRAY;
       pack_choice[i] = &DumpText::pack_darray;
       vtype[i] = DOUBLE;
       vindex[i] = atoi(&arg[iarg][1]);
@@ -466,7 +492,8 @@ int DumpText::modify_param(int narg, char **arg)
     if (strcmp(arg[1],"none") == 0) iregion = -1;
     else {
       iregion = domain->find_region(arg[1]);
-      if (iregion == -1) error->all(FLERR,"Dump_modify region ID does not exist");
+      if (iregion == -1) 
+        error->all(FLERR,"Dump_modify region ID does not exist");
       int n = strlen(arg[1]) + 1;
       idregion = new char[n];
       strcpy(idregion,arg[1]);
@@ -514,7 +541,8 @@ int DumpText::modify_param(int narg, char **arg)
     
     else if (strcmp(arg[1],"site") == 0) {
       if (app->iarray == NULL)
-	error->all(FLERR,"Threshold for a quantity application does not support");
+	error->all(FLERR,"Threshold for a quantity "
+                   "application does not support");
       thresh_array[nthresh] = SITE;
     }
     
@@ -533,14 +561,16 @@ int DumpText::modify_param(int narg, char **arg)
       thresh_index[nthresh] = atoi(&arg[1][1]);
       if (thresh_index[nthresh] < 1 || 
 	  thresh_index[nthresh] > app->ninteger)
-	error->all(FLERR,"Threshold for a quantity application does not support");
+	error->all(FLERR,"Threshold for a quantity "
+                   "application does not support");
       thresh_index[nthresh]--;
     } else if (arg[1][0] == 'd') {
       thresh_array[nthresh] = DARRAY;
       thresh_index[nthresh] = atoi(&arg[1][1]);
       if (thresh_index[nthresh] < 1 || 
 	  thresh_index[nthresh] > app->ndouble)
-	error->all(FLERR,"Threshold for a quantity application does not support");
+	error->all(FLERR,"Threshold for a quantity "
+                   "application does not support");
       thresh_index[nthresh]--;
       
     } else error->all(FLERR,"Invalid dump_modify threshold operator");

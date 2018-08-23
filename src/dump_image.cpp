@@ -42,8 +42,8 @@ enum{SPHERE,CUBE};
 enum{NUMERIC,IATTRIBUTE,DATTRIBUTE};
 enum{STATIC,DYNAMIC};
 enum{NO,YES};
-enum{ID,SITE,X,Y,Z,ENERGY,PROPENSITY,IARRAY,DARRAY};  // also in dump_text
-enum{INT,DOUBLE,BIGINT};                              // also in dump_text
+enum{ID,SITE,X,Y,Z,ENERGY,PROPENSITY,IARRAY,DARRAY};  // in other dump files
+enum{INT,DOUBLE,BIGINT};                              // in other dump files
 
 /* ---------------------------------------------------------------------- */
 
@@ -504,7 +504,7 @@ void DumpImage::write(double time)
     memory->create(buf,maxbuf*size_one,"dump:buf");
   }
 
-  pack();
+  pack(NULL);
 
   if (scolor == DATTRIBUTE) image->color_minmax(nchoose,buf,size_one);
 
