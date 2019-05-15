@@ -91,7 +91,8 @@ class AppRis : public AppLattice {
 
 //parameter for ballistic mixing 
   int nballistic, nFPair;
-  int *bfreq,*time_old,*time_new;
+  int *time_old,*time_new;
+  double *bfreq;
 
 //parameter for ballistic mixing 
   double *ct,*ct_new,dt_new;

@@ -104,7 +104,8 @@ AppRis::AppRis(SPPARKS *spk, int narg, char **arg) :
   rbarrier = rrate = NULL;
 
   // arrays for ballistic mixing
-  bfreq = time_old = time_new = NULL;
+  bfreq = NULL;
+  time_old = time_new = NULL;
   min_bfreq = BIGNUMBER;
 
   // 2NN neigbor information
@@ -1269,7 +1270,7 @@ void AppRis::check_ballistic(double t)
      time_new[i] = static_cast<int>(t/bfreq[i]);
      nmix = time_new[i] - time_old[i];
      if(nmix > 100) fprintf(screen,"Too many Frenkle Pairs generated one time, %d \n", nmix);
-     while (nmix) {  //perform mixing nmix times
+     while (nmix > 0) {  //perform mixing nmix times
        nmix --;
        ballistic(i);
        if(nmix == 0) time_old[i] = time_new[i];  //update time
@@ -1653,7 +1654,6 @@ void AppRis::grow_reactions()
 void AppRis::grow_ballistic()
 {
   int n = nballistic + 1;
-  int m = 3;
   memory->grow(bfreq,n,"app/ris:bfreq");
   memory->grow(time_old,n,"app/ris:time_old");
   memory->grow(time_new,n,"app/ris:time_new");
