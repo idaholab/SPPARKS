@@ -160,6 +160,7 @@ void DiagRpv::compute()
   int ninter,nfloater;
   int sites[10],nhop[10],ivalue; // int data
   int nlocal = apprpv->nlocal;
+  int nelement = apprpv->nelement;
   double dvalue ; // double data 
   double msd[10] ;
 
@@ -173,8 +174,8 @@ void DiagRpv::compute()
     for (int i = 0; i < nlocal; i++) sites[element[i]]++;
   }
 
-  if(hopflag) {
-    for(int i = 0; i < nlist; i++) {nhop[i] = 0; nhop[i] = apprpv->hcount[i];}   
+  if(hopflag) {// hop event of each element 
+    for(int i = 1; i < nelement+1; i++) {nhop[i] = 0; nhop[i] = apprpv->hcount[i];}   
   }
 
   if(msdflag) {// MSD calculation 

@@ -25,7 +25,7 @@ using namespace SPPARKS_NS;
 
 // same as in create_sites.cpp and diag_cluster.cpp
 
-enum{NONE,LINE_2N,SQ_4N,SQ_8N,TRI,SC_6N,SC_26N,FCC,BCC,DIAMOND,
+enum{NONE,LINE_2N,SQ_4N,SQ_8N,TRI,SC_6N,SC_26N,FCC,BCC,BCC_OCTA,DIAMOND,
        FCC_OCTA_TETRA,RANDOM_1D,RANDOM_2D,RANDOM_3D};
 
 /* ---------------------------------------------------------------------- */
@@ -46,6 +46,9 @@ Lattice::Lattice(SPPARKS *spk, int narg, char **arg) : Pointers(spk)
   else if (strcmp(arg[0],"fcc") == 0) style = FCC;
   else if (strcmp(arg[0],"bcc") == 0) style = BCC;
   else if (strcmp(arg[0],"diamond") == 0) style = DIAMOND;
+  else if (strcmp(arg[0],"bcc/octa") == 0) style = BCC_OCTA; // new style added 
+  //else if (strcmp(arg[0],"bcc/tetra") == 0) style = BCC_TETRA; 
+  //else if (strcmp(arg[0],"bcc/octa/tetra") == 0) style = BCC_OCTA_TETRA; // end add 
   else if (strcmp(arg[0],"fcc/octa/tetra") == 0) style = FCC_OCTA_TETRA;
   else if (strcmp(arg[0],"random/1d") == 0) style = RANDOM_1D;
   else if (strcmp(arg[0],"random/2d") == 0) style = RANDOM_2D;
@@ -59,7 +62,7 @@ Lattice::Lattice(SPPARKS *spk, int narg, char **arg) : Pointers(spk)
 
   if (style == LINE_2N || style == SQ_4N || style == SQ_8N ||
       style == TRI || style == SC_6N || style == SC_26N ||
-      style == FCC || style == BCC || style == DIAMOND || 
+      style == FCC || style == BCC || style == BCC_OCTA || style == DIAMOND || 
       style == FCC_OCTA_TETRA) {
     if (narg != 2) error->all(FLERR,"Illegal lattice command");
     latconst = atof(arg[1]);
@@ -82,7 +85,7 @@ Lattice::Lattice(SPPARKS *spk, int narg, char **arg) : Pointers(spk)
       domain->dimension != 2)
     error->all(FLERR,"Lattice style does not match dimension");
   if ((style == SC_6N || style == SC_26N || style == FCC || 
-       style == BCC || style == DIAMOND || style == FCC_OCTA_TETRA ||
+       style == BCC || style == BCC_OCTA || style == DIAMOND || style == FCC_OCTA_TETRA ||
        style == RANDOM_3D) && 
       domain->dimension != 3)
     error->all(FLERR,"Lattice style does not match dimension");
@@ -101,6 +104,15 @@ Lattice::Lattice(SPPARKS *spk, int narg, char **arg) : Pointers(spk)
   } else if (style == BCC) {
     add_basis(0.0,0.0,0.0);
     add_basis(0.5,0.5,0.5);
+  } else if (style == BCC_OCTA) { // bcc/octa, 6 octa per unit cell  
+    add_basis(0.0,0.0,0.0);
+    add_basis(0.5,0.5,0.5);
+    add_basis(0.5,0.0,0.0);
+    add_basis(0.0,0.5,0.0);
+    add_basis(0.0,0.0,0.5);
+    add_basis(0.0,0.5,0.5);
+    add_basis(0.5,0.0,0.5);
+    add_basis(0.5,0.5,0.0);
   } else if (style == FCC) {
     add_basis(0.0,0.0,0.0);
     add_basis(0.0,0.5,0.5);

@@ -486,6 +486,7 @@ void AppLattice::iterate_kmc_global(double stoptime)
 
     if (isite >= 0) {
       time += dt_step;
+      if (concentrationflag) concentration_field(dt_step); //yongfeng, integrate concentration every step 
       if (time_flag) { //yongfeng
          time_tracer(dt_step);
          realtime += dt_step*real_time(time);
@@ -494,17 +495,25 @@ void AppLattice::iterate_kmc_global(double stoptime)
 	site_event(isite,ranapp);
 	naccept++;
         if (reaction_flag) check_reaction(); //yongfeng
-        if (concentrationflag) concentration_field(); //yongfeng
+        if (ballistic_flag) check_ballistic(time); //yongfeng
+        //if (ballistic_flag) sia_concentration(dt_step); // yongfeng 
 	timer->stamp(TIME_APP);
       } else {
 	done = 1;
 	time = stoptime;
       }
-    } else {
-      done = 1;
-      time = stoptime;
+    } else { // can not identify a site to perform site event, i.e., no diffusers 
+      if (ballistic_flag) { // the time advanement should not exceed the time interval for ballistic events 
+         time += min_bfreq;
+         check_ballistic(time); 
+      } else {
+        done = 1;
+        time = stoptime;
+      } 
     }
 
+    if (clst_flag && (done || time >= nextoutput)) cluster();
+    if (concentrationflag && (done || time >= nextoutput)) time_averaged_concentration(); // calculate time averaged concentration 
     if (done || time >= nextoutput) nextoutput = output->compute(time,done);
     timer->stamp(TIME_OUTPUT);
   }
@@ -586,6 +595,7 @@ void AppLattice::iterate_kmc_sector(double stoptime)
 	isite = solve->event(&dt);
 	timer->stamp(TIME_SOLVE);
 
+        if(ballistic_flag && dt > min_bfreq) dt = min_bfreq;  // the timestep can not exceed ballstic frequency if the flag is on 
 	if (isite < 0 || site2i[isite] < 0) done = 1;  // site2i[isite]
 	else {
 	  timesector += dt;
@@ -617,11 +627,13 @@ void AppLattice::iterate_kmc_sector(double stoptime)
 
     if (reaction_flag) check_reaction(); //yongfeng
     if (ballistic_flag) check_ballistic(time); //yongfeng
-    if (concentrationflag) concentration_field(); //yongfeng
+    if (concentrationflag) concentration_field(dt_kmc); //yongfeng
+    //if (ballistic_flag) sia_concentration(dt_kmc); // yongfeng 
 
     if (time >= stoptime) alldone = 1;
-    if (alldone || time >= nextoutput)
-      nextoutput = output->compute(time,alldone);
+    if (alldone || time >= nextoutput) {
+       if(clst_flag) cluster(); //yongfeng
+       nextoutput = output->compute(time,alldone);}
     timer->stamp(TIME_OUTPUT);
 
     // recompute dt_kmc if adaptive, based on pmax across all sectors
@@ -718,6 +730,7 @@ void AppLattice::iterate_rejection(double stoptime)
     nsweeps++;
     time += dt_rkmc;
     if (time >= stoptime) done = 1;
+    if (clst_flag && (done || time >= nextoutput)) cluster();
     if (done || time >= nextoutput) nextoutput = output->compute(time,done);
     timer->stamp(TIME_OUTPUT);
   }
@@ -736,6 +749,7 @@ void AppLattice::iterate_app_update_only(double stoptime,double dt)
 
     time += dt;
     if (time >= stoptime) done = 1;
+    if (clst_flag && (done || time >= nextoutput)) cluster();
     if (done || time >= nextoutput) nextoutput = output->compute(time,done);
     timer->stamp(TIME_OUTPUT);
   }

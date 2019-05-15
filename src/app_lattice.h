@@ -76,7 +76,10 @@ class AppLattice : public App {
   virtual void check_ballistic(double) {} //yongfeng
   virtual double real_time(double) { return 0.0; } //yongfeng
   virtual void time_tracer(double) {} //yongfeng
-  virtual void concentration_field() {} //yongfeng
+  virtual void concentration_field(double) {} //yongfeng
+  virtual void time_averaged_concentration() {}; // calculate time-averaged concentration 
+  virtual void cluster() {} //yongfeng
+  virtual void sia_concentration(double) {} //Yongfeng 
 
  protected:
   int me,nprocs;
@@ -88,6 +91,7 @@ class AppLattice : public App {
   double dt_rkmc;             // rKMC time for one pass thru all sectors
   double dt_kmc;              // KMC time for one pass thru all sectors
   double dt_step;             // KMC time for single global KMC step
+  double min_bfreq;           // minimum mixing frequency 
 
   int allow_kmc;               // 1 if app supports KMC
   int allow_rejection;         // 1 if app supports rejection KMC
@@ -99,6 +103,7 @@ class AppLattice : public App {
   int time_flag;               // flag for time tracer by monomers 
   int acceleration_flag;       // flag for accelerated KMC 
   int concentrationflag;       // flag for concentration field calculation  
+  int clst_flag;               // flag for cluster analysis   
 
   int sweepflag;               // set if rejection KMC solver
   int sectorflag;              // 1 if partition my domain into sectors

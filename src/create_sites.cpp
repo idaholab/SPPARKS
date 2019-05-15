@@ -34,7 +34,7 @@ using namespace SPPARKS_NS;
 
 // same as in lattice.cpp
 
-enum{NONE,LINE_2N,SQ_4N,SQ_8N,TRI,SC_6N,SC_26N,FCC,BCC,DIAMOND,
+enum{NONE,LINE_2N,SQ_4N,SQ_8N,TRI,SC_6N,SC_26N,FCC,BCC,BCC_OCTA,DIAMOND,
        FCC_OCTA_TETRA,RANDOM_1D,RANDOM_2D,RANDOM_3D};
 
 enum{BOX,REGION};
@@ -154,7 +154,7 @@ void CreateSites::command(int narg, char **arg)
   if (latstyle == LINE_2N ||
       latstyle == SQ_4N || latstyle == SQ_8N || latstyle == TRI || 
       latstyle == SC_6N || latstyle == SC_26N || 
-      latstyle == FCC || latstyle == BCC || latstyle == DIAMOND ||
+      latstyle == FCC || latstyle == BCC || latstyle == BCC_OCTA|| latstyle == DIAMOND ||
       latstyle == FCC_OCTA_TETRA) {
 
     xlattice = domain->lattice->xlattice;
@@ -413,6 +413,8 @@ void CreateSites::structured_connectivity()
   else if (latstyle == SC_26N) maxneigh = 26;
   else if (latstyle == FCC) maxneigh = 12;
   else if (latstyle == BCC) maxneigh = 8;
+  else if (latstyle == BCC_OCTA) maxneigh = 32; // include 2NN for OCTA
+  //else if (latstyle == BCC_OCTA) maxneigh = 14;
   else if (latstyle == DIAMOND) maxneigh = 4;
   else if (latstyle == FCC_OCTA_TETRA) maxneigh = 26;
 
@@ -440,6 +442,12 @@ void CreateSites::structured_connectivity()
     if (latstyle == FCC_OCTA_TETRA) {
       if ((id[i]-1) % 16 < 8) max = maxneigh;
       else max = 14;
+    } else 
+    if (latstyle == BCC_OCTA) {
+      if ((id[i]-1) % 8 < 2) max = maxneigh;
+      else max = 18; // include 4 2NN bcc  
+      //if ((id[i]-1) % 8 < 2) max = maxneigh;
+      //else max = 6; 
     } else max = maxneigh;
     
     for (j = 0; j < max; j++) {
@@ -1145,6 +1153,24 @@ void CreateSites::offsets(double **basis)
     for (int m = 0; m < nbasis; m++)
       offsets_3d(m,basis,sqrt(3.0)/2.0*xlattice,sqrt(3.0)/2.0*xlattice,
 		 maxneigh,cmap[m]);
+  else if (latstyle == BCC_OCTA) {// BCC_OCTA 
+    for (int m = 0; m < 2; m++) {
+      offsets_3d(m,basis,sqrt(3.0)/2.0*xlattice,sqrt(3.0)/2.0*xlattice,
+		 8,&cmap[m][0]); // 8 bcc neighbors  
+      offsets_3d(m,basis,0.5*xlattice,0.5*xlattice,
+		 6,&cmap[m][8]); // 6 OCTA 1NN neighbors 
+      offsets_3d(m,basis,sqrt(2.0)/2.0*xlattice,sqrt(2.0)/2.0*xlattice,
+		 12,&cmap[m][14]); // 12 OCTA 2NNs 
+      offsets_3d(m,basis,1.0*xlattice,1.0*xlattice,
+		 6,&cmap[m][26]); // 6 bcc 2NNs 
+    } 
+    for (int m = 2; m < nbasis; m++) {
+      offsets_3d(m,basis,0.5*xlattice,0.5*xlattice,
+		 6,&cmap[m][0]); // 4 OCTA neighbors + 2 bcc neighbors
+      offsets_3d(m,basis,sqrt(2.0)/2.0*xlattice,sqrt(2.0)/2.0*xlattice,
+		 12,&cmap[m][6]); // 4 2NN bcc neighbors + 8 OCTA 2NNs 
+    } 
+  } 
   else if (latstyle == DIAMOND)
     for (int m = 0; m < nbasis; m++)
       offsets_3d(m,basis,sqrt(3.0)/4.0*xlattice,sqrt(3.0)/4.0*xlattice,
