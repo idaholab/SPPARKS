@@ -599,6 +599,7 @@ double AppRpv::sites_energy(int i, int estyle)
   int j,jd,n1nn;
   double eng = 0.0;
 
+  if(estyle == 0) return eng;
   //energy from 1NN bonds
   n1nn = numneigh[i];  //num of 1NN
   for (j = 0; j < n1nn; j++) {
@@ -615,7 +616,7 @@ double AppRpv::sites_energy(int i, int estyle)
     }
   }
 
-  return eng;
+  return eng/2.0;
 }
 
 /* ----------------------------------------------------------------------
@@ -640,60 +641,29 @@ double AppRpv::site_SP_energy(int i, int j, int estyle)
 {
   double eng = 0.0;
   double eng0i, eng0j, eng1i, eng1j; //energy before and after jump
-  int m, jd;
+  int iele = element[i];
+  int jele = element[j];
 
-  // test ris simulation, no bond energy needed 
-  // eng = mbarrier[element[j]];
-  // return eng; 
-
-  //fprintf(screen,"%d %d %d \n", xyz[1][0],xyz[1][1],xyz[1][2]);  
   eng0i = sites_energy(i,estyle); //broken bond with i initially,
   eng0j = sites_energy(j,estyle); //broken bond with j initially
-  eng1i = eng1j = ebond1[element[i]][element[j]]; //bond between i&j,
 
-  //bond formed with j after switch
-  for (m = 0; m < numneigh[i]; m++)
-  {
-    jd = neighbor[i][m];
-    if (jd != j)
-       eng1i += ebond1[element[j]][element[jd]];
-  }
+  // switch the element and recalculate the site energy 
+  element[i] = jele;
+  element[j] = iele; 
+  eng1i = sites_energy(i,estyle); //broken bond with i initially,
+  eng1j = sites_energy(j,estyle); //broken bond with j initially
 
-  if (estyle == 2)
-  {
-    for(m = 0; m < numneigh2[i]; m++)
-    {
-      jd = neighbor2[i][m];
-      eng1i += ebond2[element[j]][element[jd]];
-    }
-  }
-
-  //bond formed with i after switch
-  for (m = 0; m < numneigh[j]; m++)
-  {
-    jd = neighbor[j][m];
-    if (jd != i)
-       eng1j += ebond1[element[i]][element[jd]];
-  }
-
-  if (estyle == 2)
-  {
-    for (m = 0; m < numneigh2[j]; m++)
-    {
-      jd = neighbor2[j][m];
-      eng1j += ebond2[element[i]][element[jd]];
-    }
-  }
+  // switch back 
+  element[j] = jele; 
+  element[i] = iele; 
 
   //barrier = migbarrier + (eng_after - eng_before)/2.0;
-  eng = mbarrier[element[j]] + (eng1i + eng1j - eng0i -eng0j) / 2.0;
+  eng = mbarrier[element[j]] + (eng1i + eng1j - eng0i -eng0j);
 
   //add elastic contribution if applicable
   if(elastic_flag) {
-    int itype = element[i];
-    int jtype = element[j];
-    double eng_ei = elastic_energy(j,itype) - elastic_energy(i,itype);
-    double eng_ej = elastic_energy(i,jtype) - elastic_energy(j,jtype);
+    double eng_ei = elastic_energy(j,iele) - elastic_energy(i,iele);
+    double eng_ej = elastic_energy(i,jele) - elastic_energy(j,jele);
 
     eng += (eng_ei + eng_ej)/2.0;
   }

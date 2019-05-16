@@ -812,7 +812,7 @@ double AppErad::sites_energy(int i, int estyle)
     }
   }
 
-  return eng;
+  return eng/2.0;
 }
 
 /* ----------------------------------------------------------------------
@@ -864,8 +864,7 @@ double AppErad::site_concentration(int i, int estyle)
 double AppErad::site_SP_energy(int i, int j, int estyle)
 {
   double eng = 0.0;
-  double ci,cj,eng0i, eng0j, eng1i, eng1j; //energy before and after jump
-  int m, k, jd;
+  double eng0i, eng0j, eng1i, eng1j; //energy before and after jump
 
   int iele = element[i];
   int jele = element[j];
@@ -893,55 +892,68 @@ double AppErad::site_SP_energy(int i, int j, int estyle)
   // Chenge in bonding energy due to vavancy move  
   eng0i = sites_energy(i,estyle); //broken bond with i initially,
   eng0j = sites_energy(j,estyle); //broken bond with j initially
-  eng1i = eng1j = ebond1[element[i]][element[j]]; //bond between i&j,
 
-  //bond formed with j after switch, j can not be a vacancy 
-  for (m = 0; m < numneigh[i]; m++)
-  {
+  // switch the element and recalculate the site energy 
+  element[i] = jele;
+  element[j] = iele; 
+  eng1i = sites_energy(i,estyle); //broken bond with i initially,
+  eng1j = sites_energy(j,estyle); //broken bond with j initially
+
+  // switch back 
+  element[j] = jele; 
+  element[i] = iele; 
+    
+/*
+  int jdele; 
+  //bond formed between j and i's neighbors after switch, j can not be a vacancy 
+  for (m = 0; m < numneigh[i]; m++) {
     jd = neighbor[i][m];
-    if (jd == j) continue;        // site j has been changed to i 
-    eng1i += ebond1[jele][element[jd]];
+    jdele = element[jd];   
+    if (jd == j) jdele = element[i]; // i & j switched  
+    eng1i += ebond1[jele][jdele];
   }
 
-  if (estyle == 2)
-  {
-    for(m = 0; m < numneigh2[i]; m++)
-    {
+  if (estyle == 2) {
+    for(m = 0; m < numneigh2[i]; m++) {
       jd = neighbor2[i][m];
-      eng1i += ebond2[jele][element[jd]];
+      jdele = element[jd];   
+      if (jd == j) jdele = element[i]; // i & j switched  
+      eng1i += ebond2[jele][jdele];
     }
   }
 
-  //bond formed with i after switch, i is a vavancy 
+  //bond formed between i and j's neighbors after switch, i is a vavancy 
   if(cflag) ci = site_concentration(i,1); 
-  for (m = 0; m < numneigh[j]; m++)
-  {
+  for (m = 0; m < numneigh[j]; m++) {
     jd = neighbor[j][m];
-    if (jd == i) continue; 
-    if(cflag && element[jd] == VACANCY) {
+    jdele = element[jd];   
+    if (jd == i) jdele = element[j]; // i & j switched  
+
+    if(cflag && jdele == VACANCY) { // only CC bond are concentration dependendent 
       cj = site_concentration(jd,1);
-
-      eng1j += ci*cj*ebond1[iele][element[jd]];
-    } else
-    eng1j += ebond1[iele][element[jd]];
-  }
-
-  if (estyle == 2)
-  {
-    if(cflag) ci = site_concentration(i,2); 
-    for (m = 0; m < numneigh2[j]; m++)
-    {
-      jd = neighbor2[j][m];
-      if(cflag && element[jd] == VACANCY) {
-        cj = site_concentration(jd,2);
-
-        eng1j += ci*cj*ebond2[iele][element[jd]];
-      } else
-      eng1j += ebond2[iele][element[jd]];
+      eng1j += ci*cj*ebond1[iele][jeele];
+    } else {
+      eng1j += ebond1[iele][jdele];
     }
   }
 
-  eng = mbarrier[iele] + (eng1i + eng1j - eng0i -eng0j) / 2.0;
+  if (estyle == 2){
+    if(cflag) ci = site_concentration(i,2); 
+    for (m = 0; m < numneigh2[j]; m++) {
+      jd = neighbor2[j][m];
+      jdele = element[jd];   
+      if (jd == i) jdele = element[j]; // i & j switched  
+
+      if(cflag && jdele == VACANCY) {
+        cj = site_concentration(jd,2);
+        eng1j += ci*cj*ebond2[iele][jdele];
+      } else
+      eng1j += ebond2[iele][jdele];
+    }
+  }
+*/
+
+  eng = mbarrier[iele] + (eng1i + eng1j - eng0i -eng0j);
 
   //add elastic contribution if applicable
   if(elastic_flag) {
@@ -952,7 +964,6 @@ double AppErad::site_SP_energy(int i, int j, int estyle)
   }
 
   return eng;
-
 }
 
 /* ----------------------------------------------------------------------
@@ -1652,7 +1663,7 @@ double AppErad::total_energy( )
     }
   }
 
-  return penergy/2.0;
+  return penergy;
 }
 
 /* ----------------------------------------------------------------------

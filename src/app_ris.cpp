@@ -639,14 +639,7 @@ double AppRis::sites_energy(int i, int estyle)
     }
   }
 
-  if(segregationflag) { //segregation energy 
-      int jtype = element[i];
-      int stype = type[i];
-      eng += 2*Eseg[jtype][stype];
-     //fprintf(screen,"%f %f %d %d \n", eng, Eseg[jtype][stype],jtype,stype);
-  } 
-
-  return eng;
+  return eng/2.0;
 }
 
 /* ----------------------------------------------------------------------
@@ -671,73 +664,71 @@ double AppRis::site_SP_energy(int i, int j, int estyle)
 {
   double eng = 0.0;
   double eng0i, eng0j, eng1i, eng1j; //energy before and after jump
-  int m, jd;
-
+  int iele = element[i];
+  int jele = element[j];
 
   eng0i = sites_energy(i,estyle); //broken bond with i initially,
   eng0j = sites_energy(j,estyle); //broken bond with j initially
 
+  // switch the element and recalculate the site energy 
+  element[i] = jele;
+  element[j] = iele; 
+  eng1i = sites_energy(i,estyle); //broken bond with i initially,
+  eng1j = sites_energy(j,estyle); //broken bond with j initially
+
+  // switch back 
+  element[j] = jele; 
+  element[i] = iele; 
+
+/*
   eng1i = eng1j = 0.0;
   if(estyle > 0) {
-    eng1i = eng1j = ebond1[element[i]][element[j]]; //bond between i&j,
+    eng1i = eng1j = ebond1[itype][jtype]; //bond between i&j, limited to first NN exchange so far
 
     //bond formed with j after switch
-    for (m = 0; m < numneigh[i]; m++)
-    {
+    for (m = 0; m < numneigh[i]; m++) {
       jd = neighbor[i][m];
       if (jd != j)
-         eng1i += ebond1[element[j]][element[jd]];
+         eng1i += ebond1[jele][element[jd]];
     }
 
-    if (estyle == 2)
-    {
-      for(m = 0; m < numneigh2[i]; m++)
-      {
+    if (estyle == 2) {
+      for(m = 0; m < numneigh2[i]; m++) {
         jd = neighbor2[i][m];
         if (jd != j)
-        eng1i += ebond2[element[j]][element[jd]];
+        eng1i += ebond2[jele][element[jd]];
       }
     }
 
     //bond formed with i after switch
-    for (m = 0; m < numneigh[j]; m++)
-    {
+    for (m = 0; m < numneigh[j]; m++) {
       jd = neighbor[j][m];
       if (jd != i)
-         eng1j += ebond1[element[i]][element[jd]];
+         eng1j += ebond1[iele][element[jd]];
     }
 
-    if (estyle == 2)
-    {
-      for (m = 0; m < numneigh2[j]; m++)
-      {
+    if (estyle == 2) {
+      for (m = 0; m < numneigh2[j]; m++) {
         jd = neighbor2[j][m];
         if (jd != i)
-        eng1j += ebond2[element[i]][element[jd]];
+        eng1j += ebond2[iele][element[jd]];
       }
     }
   }
-
-  //segregation energy before and after switch 
-  if(segregationflag) {
-    eng1i += Eseg[element[i]][type[i]] + Eseg[element[j]][type[j]];
-    eng1j += Eseg[element[i]][type[j]] + Eseg[element[j]][type[i]];
-  }
+*/
 
   //for vacancy the barrier is given by the element to be switched;
-  if(element[i] == VACANCY) eng = mbarrier[element[j]] + (eng1i + eng1j - eng0i -eng0j) / 2.0;
+  if(element[i] == VACANCY) eng = mbarrier[jele] + eng1i + eng1j - eng0i -eng0j;
   //for SIA the diffusion is given by itself 
-  if(element[i] > VACANCY) eng = mbarrier[element[i]] + (eng1i + eng1j - eng0i -eng0j) / 2.0;
+  if(element[i] > VACANCY) eng = mbarrier[iele] + eng1i + eng1j - eng0i -eng0j;
 
+  //segregation energy before and after switch 
+  if(segregationflag) 
+    eng += (Eseg[iele][type[j]] + Eseg[jele][type[i]] - Eseg[iele][type[i]] - Eseg[jele][type[j]])/2.0; // before 
+  
   //add elastic contribution if applicable
-  if(elastic_flag) {
-    int itype = element[i];
-    int jtype = element[j];
-    double eng_ei = elastic_energy(j,itype) - elastic_energy(i,itype);
-    double eng_ej = elastic_energy(i,jtype) - elastic_energy(j,jtype);
-
-    eng += (eng_ei + eng_ej)/2.0;
-  }
+  if(elastic_flag) 
+    eng += (elastic_energy(j,iele) - elastic_energy(i,iele) + elastic_energy(i,jele) - elastic_energy(j,jele))/2.0;
 
   return eng;
 }
@@ -1478,18 +1469,26 @@ int AppRis::recombine(int i)
 
 double AppRis::total_energy( )
 {
-  int j;
+  int j,etype,stype;
   double penergy = 0.0;
   for(int i = 0; i < nlocal; i++) penergy += sites_energy(i,engstyle);
+
   if(elastic_flag) { // elastic energy 
     for(j = 0; j < nlocal; j++) {
-      int jtype = element[j];
-      penergy += elastic_energy(j,jtype);
-   //   fprintf(screen, "%f %d %d \n", penergy, element[j], nelement); 
+      etype = element[j];
+      penergy += elastic_energy(j,etype);
     }
   }
 
-  return penergy/2.0;
+  if(segregationflag) { // segregation energy 
+    for(j = 0; j < nlocal; j++) {
+      etype = element[j];
+      stype = type[j];
+      penergy += Eseg[etype][stype];;
+    }
+  }
+
+  return penergy;
 }
 
 /* ----------------------------------------------------------------------

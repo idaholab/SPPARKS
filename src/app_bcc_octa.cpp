@@ -661,7 +661,7 @@ double AppBccOcta::sites_energy(int i, int estyle)
     }
   }
 
-  return eng;
+  return eng/2.0;
 }
 
 /* ----------------------------------------------------------------------
@@ -701,145 +701,79 @@ double AppBccOcta::site_SP_energy(int i, int j, int estyle)
   double ci,cj,eng0i, eng0j, eng1i, eng1j; //energy before and after jump
   int m, k, jd;
 
-  // no Fe or octa vacancy hop events  
-  if(element[i] == FE || element[i] == VO) {
-    return -1.0;
+  int iele = element[i];
+  int jele = element[j];
 
-  //} else if(element[i] == SB) {
-  //  if(type[j] == OCTA || element[j] == SB) return -1.0;
-  //  return mbarrier[element[i]];
-  
-  } else if(element[i] >= I1) {
-    if(type[j] == OCTA || element[j] >= I1) return -1.0;
+  // no excahange of same type of elements   
+  if(iele == jele) return -1.0;
+ 
+  //SIA diffusion on bcc lattice only  
+  if(iele >= I1) {
+    if(type[j] == OCTA || jele >= I1) return -1.0;
     double ran1 = ranbccocta->uniform();
     if(dmigration < 3 && ran1 < dratio) {
       double dij[4];
       dij[0] = dij[1] = dij[2] = 0.0;
       distanceIJ(i,j,dij);
       dij[3] = dij[1]*dij[1] + dij[2]*dij[2] + dij[0] * dij[0];
-      double prdt = dij[1]*Vmig[element[i]][1] + dij[2]*Vmig[element[i]][2] + dij[0]*Vmig[element[i]][0];
-      if (dmigration == 1 && prdt*prdt/dij[3]/Vmig[element[i]][3] < 0.99) return -1.0; // 1D diffusion
-      if (dmigration == 2 && prdt*prdt/dij[3]/Vmig[element[i]][3] > 0.01) return -1.0; // 2D diffusion
+      double prdt = dij[1]*Vmig[iele][1] + dij[2]*Vmig[iele][2] + dij[0]*Vmig[iele][0];
+      if (dmigration == 1 && prdt*prdt/dij[3]/Vmig[iele][3] < 0.99) return -1.0; // 1D diffusion
+      if (dmigration == 2 && prdt*prdt/dij[3]/Vmig[iele][3] > 0.01) return -1.0; // 2D diffusion
     }
 
-    return mbarrier[element[i]];
+    return mbarrier[iele];
+  } 
 
-  } else if(element[i] == VACANCY || element[i] == SB) { 
-    if(type[j] == OCTA || element[i] == element[j]) return -1.0;
+  //vacancy and SB diffusion on bcc lattice only 
+  if(iele == VACANCY || iele == SB) { 
+    if(type[j] == OCTA) return -1.0; // no going back to interstitial currently 
 
     // Chenge in bonding energy due to vavancy move  
     eng0i = sites_energy(i,estyle); //broken bond with i initially,
     eng0j = sites_energy(j,estyle); //broken bond with j initially
-    eng1i = eng1j = ebond1[element[i]][element[j]]; //bond between i&j,
 
-    //bond formed with j after switch, j can not be a vacancy
-    for (m = 0; m < numneigh[i]; m++) { 
-       jd = neighbor[i][m];
-       if (jd == j) continue;
-       eng1i += ebond1[element[j]][element[jd]];
-    }
+    // switch the element and recalculate the site energy 
+    element[i] = jele;
+    element[j] = iele; 
+    eng1i = sites_energy(i,estyle); //broken bond with i initially,
+    eng1j = sites_energy(j,estyle); //broken bond with j initially
 
-    if(estyle == 2){
-      for(m = 0; m < numneigh2[i]; m++) {
-         jd = neighbor2[i][m];
-         eng1i += ebond2[element[j]][element[jd]];
-      }
-    }
+    // switch back 
+    element[j] = jele; 
+    element[i] = iele; 
 
-    //bond formed with i after switch, i is a vavancy 
-    if(cflag) ci = site_concentration(i,1); 
-    for(m = 0; m < numneigh[j]; m++){
-      jd = neighbor[j][m];
-      if(jd == i) continue; 
-      if(cflag && element[jd] == VACANCY) {
-        cj = site_concentration(jd,1);
-        eng1j += ci*cj*ebond1[element[i]][element[jd]];
-      } else
-      eng1j += ebond1[element[i]][element[jd]];
-    }
-
-    if(estyle == 2){
-      if(cflag) ci = site_concentration(i,2); 
-      for(m = 0; m < numneigh2[j]; m++) {
-         jd = neighbor2[j][m];
-         if(cflag && element[jd] == VACANCY) {
-           cj = site_concentration(jd,2);
-           eng1j += ci*cj*ebond2[element[i]][element[jd]];
-         } else
-         eng1j += ebond2[element[i]][element[jd]];
-      }
-    }
-
-    eng = mbarrier[element[i]] + (eng1i + eng1j - eng0i -eng0j) / 2.0;
+    eng = mbarrier[iele] + (eng1i + eng1j - eng0i -eng0j);
     if(eng < 0.0) eng = 0.0; // zero barrier event
     return eng;
+  } 
 
-  } else if(element[i] == HE) {
+  //He diffuses on both lattices 
+  if(iele== HE) {
     // switch with an VO 
-    if(element[j] == VO) {
-      eng0i = sites_energy(i,estyle); //broken bond with i initially,
-      eng0j = sites_energy(j,estyle); //broken bond with j initially
-      eng1i = eng1j = ebond1[element[i]][element[j]]; //bond between i&j,
+    eng0i = sites_energy(i,estyle); //broken bond with i initially,
+    eng0j = sites_energy(j,estyle); //broken bond with j initially
 
-      //bond formed with j after switch, j can not be a vacancy
-      for (m = 0; m < numneigh[i]; m++) { 
-         jd = neighbor[i][m];
-         if (jd == j) continue;
-         eng1i += ebond1[element[j]][element[jd]];
-      }
-
-      if(estyle == 2){
-        for(m = 0; m < numneigh2[i]; m++) {
-           jd = neighbor2[i][m];
-           eng1i += ebond2[element[j]][element[jd]];
-        }
-      }
-
-      //bond formed with i after switch, j can not be a vacancy
-      for (m = 0; m < numneigh[j]; m++) { 
-         jd = neighbor[j][m];
-         if (jd == i) continue;
-         eng1j += ebond1[element[i]][element[jd]];
-      }
-
-      if(estyle == 2){
-        for(m = 0; m < numneigh2[j]; m++) {
-           jd = neighbor2[j][m];
-           eng1j += ebond2[element[i]][element[jd]];
-        }
-      }
-
-      eng = mbarrier[element[i]] + (eng1i + eng1j - eng0i -eng0j) / 2.0;
-      return eng;
+    if(jele == VO) {
+      // switch the element and recalculate the site energy 
+      element[i] = jele;
+      element[j] = iele;
+    } else if (jele == VACANCY) {
+      // He going to a vacancy creates a VO and an SB  
+      element[i] = VO;
+      element[j] = SB; 
     } 
+ 
+    eng1i = sites_energy(i,estyle); //broken bond with i initially,
+    eng1j = sites_energy(j,estyle); //broken bond with j initially
 
-    if(element[j] == VACANCY) {
-      eng0i = sites_energy(i,estyle); //broken bond with i initially,
-      eng0j = sites_energy(j,estyle); //broken bond with j initially
-      eng1i = ebond1[element[i]][element[j]]; //bond between i&j, to remove double count 
-      eng1j = ebond1[SB][VO]; //new bond between i&j 
+    // switch back 
+    element[j] = jele; 
+    element[i] = iele; 
 
-      for (m = 0; m < numneigh[i]; m++) { 
-         jd = neighbor[i][m];
-         if (jd == j) continue;
-         eng1i += ebond1[SB][element[jd]]; // The new type at j is SB, not element[i] 
-      }
-      
-      if(estyle == 2){
-        for(m = 0; m < numneigh2[i]; m++) {
-           jd = neighbor2[i][m];
-           eng1j += ebond2[SB][element[jd]];
-        }
-      
-      }
-
-      eng = mbarrier[element[i]] + (eng1i + eng1j - eng0i -eng0j) / 2.0;
-      if(eng < 0.0) eng = 0.0; // zero barrier event
-      return eng;
-    }
-
-    return -1.0; // He does not echange with any other particles 
-  }
+    eng = mbarrier[iele] + (eng1i + eng1j - eng0i -eng0j);
+    if(eng < 0.0) eng = 0.0; // zero barrier event
+    return eng;
+  } 
 
   return -1.0; 
 }
@@ -1542,7 +1476,7 @@ double AppBccOcta::total_energy( )
   double penergy = 0.0;
   for(int i = 0; i < nlocal; i++) penergy += sites_energy(i,engstyle);
 
-  return penergy/2.0;
+  return penergy;
 }
 
 /* ----------------------------------------------------------------------
