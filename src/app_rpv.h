@@ -88,8 +88,8 @@ class AppRpv : public AppLattice {
 
 //parameter for ballistic mixing 
   int nballistic;
-  int *bfreq,*time_old,*time_new;
-  double *rdamp,*pn_local,*pn_global;
+  int *time_old,*time_new;
+  double *rdamp,*pn_local,*pn_global,*bfreq;
   double **xmix,**pmix;
 
 //parameter for acceleration 

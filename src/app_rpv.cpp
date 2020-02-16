@@ -34,6 +34,7 @@ enum{ZERO,FE,VACANCY,CU,NI,MN,Si,P,C,SIA};       // same as DiagRpv; element
 
 #define DELTAEVENT 100000
 #define MAX2NN 6 // max 2NN of BCC lattice
+#define BIGNUMBER 1e18 // define a big number 
 
 /* ---------------------------------------------------------------------- */
 
@@ -103,8 +104,10 @@ AppRpv::AppRpv(SPPARKS *spk, int narg, char **arg) :
 
   // arrays for ballistic mixing
   rdamp = pn_local = pn_global = NULL;
-  bfreq = time_old = time_new = NULL;
+  bfreq = NULL;
+  time_old = time_new = NULL;
   xmix = pmix = NULL;
+  min_bfreq = BIGNUMBER;
 
   // 2NN neigbor information
   numneigh2 = NULL;
@@ -394,6 +397,7 @@ void AppRpv::input_app(char *command, int narg, char **arg)
 
     bfreq[nballistic] = atoi(arg[0]); // dose rate
     rdamp[nballistic] = atof(arg[1]); // damage range
+    if(min_bfreq > bfreq[nballistic]) min_bfreq = bfreq[nballistic];
 
     nballistic ++; // number of mixing events
 

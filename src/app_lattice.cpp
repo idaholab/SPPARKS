@@ -83,7 +83,7 @@ AppLattice::AppLattice(SPPARKS *spk, int narg, char **arg) : App(spk,narg,arg)
   nsweeps = 0;
 
   app_update_only = 0;
-  reaction_flag = ballistic_flag = time_flag = 0; //yongfeng
+  reaction_flag = ballistic_flag = time_flag = sinkmotion_flag = 0; //yongfeng
 }
 
 /* ---------------------------------------------------------------------- */
@@ -484,6 +484,7 @@ void AppLattice::iterate_kmc_global(double stoptime)
     isite = solve->event(&dt_step);
     timer->stamp(TIME_SOLVE);
 
+    if(ballistic_flag && dt_step > min_bfreq) dt_step = min_bfreq; //Yongfeng, double check later!!! 
     if (isite >= 0) {
       time += dt_step;
       if (concentrationflag) concentration_field(dt_step); //yongfeng, integrate concentration every step 
@@ -496,6 +497,7 @@ void AppLattice::iterate_kmc_global(double stoptime)
 	naccept++;
         if (reaction_flag) check_reaction(); //yongfeng
         if (ballistic_flag) check_ballistic(time); //yongfeng
+        if (sinkmotion_flag) check_sinkmotion(time); //yongfeng
         //if (ballistic_flag) sia_concentration(dt_step); // yongfeng 
 	timer->stamp(TIME_APP);
       } else {
@@ -627,6 +629,7 @@ void AppLattice::iterate_kmc_sector(double stoptime)
 
     if (reaction_flag) check_reaction(); //yongfeng
     if (ballistic_flag) check_ballistic(time); //yongfeng
+    if (sinkmotion_flag) check_sinkmotion(time); //yongfeng
     if (concentrationflag) concentration_field(dt_kmc); //yongfeng
     //if (ballistic_flag) sia_concentration(dt_kmc); // yongfeng 
 

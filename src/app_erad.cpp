@@ -400,7 +400,8 @@ void AppErad::input_app(char *command, int narg, char **arg)
     ballistic_flag = 1;
     grow_ballistic();
 
-    bfreq[nballistic] = atof(arg[0]); // dose rate
+    double dose_rate=atof(arg[0]);// dose rate 
+    bfreq[nballistic] = 1e12/nlocal/dose_rate; // time interval to introduce an FP 
     if(min_bfreq > bfreq[nballistic]) min_bfreq = bfreq[nballistic];
     nballistic ++; // number of mixing events
   }
@@ -856,6 +857,7 @@ double AppErad::site_concentration(int i, int estyle)
     return ci;
   }
 
+  return 0.0;
 }
 /* ----------------------------------------------------------------------
   compute barriers for an exchange event between i & j
@@ -1398,7 +1400,7 @@ int AppErad::recombine(int i)
      return m;  
   }
 
-  //return -1; 
+  return -1; 
 }
 
 /* ----------------------------------------------------------------------

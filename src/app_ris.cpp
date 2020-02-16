@@ -28,11 +28,11 @@
 
 using namespace SPPARKS_NS;
 
-enum{NOOP,BCC,NBCC};                          // all sites are BCC except for SIAs; type
+enum{NOOP,BCC,NBCC};                          // all sites are on lattice, specicial site types (e.g., sinks) can be added  
 enum{FE=0,CU,NI,VACANCY,I1,I2,I3,I4,I5,I6};   // same as DiagRpv; element. I1: FeFe; I2: FeCu; I3: FeNi; I4: CuCu; I5: CuNi; I6: NiNi
 
 #define DELTAEVENT 100000
-#define MAX2NN 6 // max 2NN of BCC lattice
+#define MAX2NN 6 // max # of 2NN for both FCC and BCC lattice
 #define BIGNUMBER 1e18 // define a big number 
 
 /* ---------------------------------------------------------------------- */
@@ -50,7 +50,6 @@ AppRis::AppRis(SPPARKS *spk, int narg, char **arg) :
   engstyle = 1; //1 for 1NN interaction, 2 for 2NN interaction; default 1
   diffusionflag = 0; //flag for MSD calculations, 1 for yes, 0 for no; default 0
   concentrationflag = 0; //flag for concentration calculation 
-  segregationflag = 0; //flag for thermal segregation  
   if (narg < 1) error->all(FLERR,"Illegal app_style command");
   if (narg >= 2) engstyle = atoi(arg[1]);
   if (engstyle == 2) delpropensity += 1;// increase delpropensity for 2NN interaction
@@ -93,10 +92,10 @@ AppRis::AppRis(SPPARKS *spk, int narg, char **arg) :
   dislocation_radius = NULL;
 
   // arrays for sinks
-  sink_shape = sink_type = sink_normal = sink_segment = nabsorption = nreserve = NULL;
-  sink_strength = sink_radius = sink_mfp = ci =  NULL;
-  xsink = NULL;
-  isink = NULL;
+  isink = sink_shape = sink_normal = sink_segment = NULL; 
+  sink_range = sink_radius = ci = sink_dr = sink_dt = sink_dt_new = sink_dt_old =  NULL;
+  xsink = sink_mfp = NULL;
+  nabsorption = nreserve = NULL;
 
   // arrays for reactions
   rsite = rinput = routput = rcount = renable = rtarget = NULL;
@@ -147,15 +146,18 @@ AppRis::~AppRis()
 
   if (sink_flag) { // memory use related to sink
     memory->destroy(sink_shape);
-    memory->destroy(sink_type);
-    memory->destroy(sink_strength);
+    memory->destroy(sink_range);
     memory->destroy(xsink);
     memory->destroy(isink);
     memory->destroy(sink_normal);
     memory->destroy(sink_segment);
     memory->destroy(sink_radius);
-    memory->destroy(sink_mfp);
+    memory->destroy(eisink);
+    memory->destroy(sink_dt_new);
+    memory->destroy(sink_dt_old);
+    memory->destroy(sink_dr);
     memory->destroy(nabsorption);
+    memory->destroy(nreserve);
   }
 
   if (ballistic_flag) { // memory use related to ballistic mixing
@@ -182,9 +184,6 @@ AppRis::~AppRis()
     memory->destroy(trap_type);
   }
 
-  if (segregationflag) {// memory use for segregation 
-    memory->destroy(Eseg);
-  }
 }
 
 /* ----------------------------------------------------------------------
@@ -203,7 +202,6 @@ void AppRis::input_app(char *command, int narg, char **arg)
     nelement = atoi(arg[0]);   // num of elements
 
     memory->create(nsites_local,nelement,"app/ris:nsites_local");
-    memory->create(nreserve,nelement,"app/ris:nreserve");
     memory->create(ci,nelement,"app/ris:ci"); //static concentration based on current configuration 
     memory->create(ct,nelement,"app/ris:ct"); //time averaged concentration 
     memory->create(ct_new,nelement,"app/ris:ct_new"); //time averaged concentration 
@@ -244,31 +242,12 @@ void AppRis::input_app(char *command, int narg, char **arg)
   // migration barriers for each element. For V this is the migration barrier is set to be 0 (given by the elements). 
   else if (strcmp(command, "migbarrier") ==0) {
 
-    if (narg < nelement) error->all(FLERR,"Illegal migbarrier command");
+    if (narg < nelement) error->all(FLERR,"Illegal migbarrier command, a barrier is needed for each element");
     barrierflag = 1;
     memory->create(mbarrier,nelement,"app/ris:mbarrier");
 
     for (i = 0; i < narg; i++) {
         mbarrier[i] = atof(arg[i]);
-    }
-  }
-
-  // segregation of element to given a given type of lattice (defined by i1). The segregation strength is given by a segregation energy Eset in unit of eV. 
-  else if (strcmp(command, "segregation") ==0) {
-
-    if (narg < 3) error->all(FLERR,"Illegal segregation command");
-    if (segregationflag == 0) {// create  segregation energy array and initilize) 
-       segregationflag = 1;
-       memory->create(Eseg,nelement,10,"app/ris:Eseg"); // there only 3 (NULL, BCC, nonBCC) types of lattice site. The segregaiton energy is defined on nonBCC site  
-       for (i = 0; i < nelement; i++ ) {
-       for (j = 0; j < 10; j++ ) {Eseg[i][j] = 0.0;}} 
-    } 
-
-    int nseg = narg/3;
-    for (i = 0; i < nseg; i++) {
-        int segele = atoi(arg[i*3]);
-        int segsite = atoi(arg[i*3+1]);
-        Eseg[segele][segsite] = atof(arg[i*3+2]);
     }
   }
 
@@ -355,28 +334,75 @@ void AppRis::input_app(char *command, int narg, char **arg)
     }
   }
 
-  // define sinks to defects, could be dislocations or interfaces or 3D regions
+  // define sinks to defects and element, one sink each line 
   else if (strcmp(command, "sink") ==0) {
-    if(narg != 10) error->all(FLERR,"illegal sink command");
-    if(sink_flag == 0)  memory->create(isink, nlattice, nelement,"app/ris:isink");
+    if(narg != 8) error->all(FLERR,"illegal sink command");
+    if(sink_flag == 0) memory->create(isink, nlattice,"app/ris:isink");
+    if(sink_flag == 0) {for(i = 0; i < nlattice; i++)  isink[i] = 0;} // set no sink initially 
     sink_flag = 1;
-    grow_sinks();
 
-    sink_type[nsink] = atoi(arg[0]); // sink to certain element
-    sink_strength[nsink] = atof(arg[1]); // thickness of sink
-    sink_shape[nsink] = atoi(arg[2]); // 1 dislocation, 2 interface, 3 3D region
-    xsink[nsink][0] = atof(arg[3]); // coordinaiton of sink center
-    xsink[nsink][1] = atof(arg[4]);
-    xsink[nsink][2] = atof(arg[5]);
-    sink_normal[nsink] = atoi(arg[6]); // normal of planar sinks
-    sink_radius[nsink] = atof(arg[7]); // radius for circular or polygonal sinks
-    sink_segment[nsink] = atoi(arg[8]); // # of segment for polygon sinks
-    sink_mfp[nsink] = atof(arg[9]); // mean free path in this sin
-    nabsorption[nsink] = 0; // initialize number of absorptions
-    for(i = 0; i < nlattice; i++)  isink[i][nsink] = -1; // set no sink initially 
+    nsink ++;  // sink id starts from 1 
+    grow_sinks();
+    sink_range[nsink] = atof(arg[0]); // thickness of sink
+    sink_shape[nsink] = atoi(arg[1]); // 1 dislocation, 2 interface, 3 3D region
+    xsink[nsink][0] = atof(arg[2]); // coordinaiton of sink center
+    xsink[nsink][1] = atof(arg[3]);
+    xsink[nsink][2] = atof(arg[4]);
+    sink_normal[nsink] = atoi(arg[5]); // normal of planar sinks
+    sink_radius[nsink] = atof(arg[6]); // radius for circular or polygonal sinks
+    sink_segment[nsink] = atoi(arg[7]); // # of segment for polygon sinks
     sink_creation(nsink); //create the nth sink, can overlap with other sinks
       
-    nsink ++;
+  }
+
+  // define element-sink interaction by eisink. One element and one sink in each line. The id of a sink is the order in sink commands, starting from 1    
+  else if (strcmp(command, "sink_interaction") ==0) {
+
+    if(sink_flag == 0) error->all(FLERR,"sink_interaction needs to be defined after the sink command");
+    if (narg < 3) error->all(FLERR,"Illegal sink_interaction command");
+    if (eisink_flag == 0) {// create element-sink interaction.  
+       eisink_flag = 1;
+       memory->create(eisink,nelement,nsink+1,"app/ris:eisink");   
+       memory->create(nabsorption,nelement,nsink+1,"app/ris:nabsorption");   
+       memory->create(nreserve,nelement,nsink+1,"app/ris:nreserve");   
+       memory->create(sink_mfp,nelement,nsink+1,"app/ris:sink_mfp");   
+       for (i = 0; i < nelement; i++ ) {
+           for (j = 0; j < nsink+1; j++ ) {
+	       eisink[i][j] = 0.0;  // eisink = 0.0: no inteaction; eisink< -100: complete absortion; others: trapping or repulsion 
+               nabsorption[i][j] = 0;
+	       nreserve[i][j] = 0;
+               sink_mfp[i][j] = 1.0;
+           }
+       }  
+    } 
+
+    int eletype = atoi(arg[0]); // element starts from 0
+    int sinkid = atoi(arg[1]); // sink id starts from 1
+    eisink[eletype][sinkid] = atof(arg[2]);
+    if(narg > 3) sink_mfp[eletype][sinkid] = atof(arg[3]);
+  }
+
+  // define sinks to defects, could be dislocations or interfaces or 3D regions
+  else if (strcmp(command, "sink_motion") ==0) {
+
+    if(sink_flag == 0) error->all(FLERR,"sink_motion needs to be defined after the sink command");
+    if(narg < 3) error->all(FLERR,"illegal sink_motion command");
+    if(sinkmotion_flag == 0)  memory->create(sink_dr, nsink+1, "app/ris:sink_dr");
+    if(sinkmotion_flag == 0)  memory->create(sink_dt, nsink+1, "app/ris:sink_dt");
+    if(sinkmotion_flag == 0)  memory->create(sink_dt_new, nsink+1, "app/ris:sink_dt_new");
+    if(sinkmotion_flag == 0)  memory->create(sink_dt_old, nsink+1, "app/ris:sink_dt_old");
+    sinkmotion_flag = 1;
+
+    for (i = 0; i < nsink+1; i++) {sink_dr[i] = -1.0; sink_dt[i] = 0.0;} // by default no sink motion  
+
+    int nseg = narg/3;
+    for (i = 0; i < nseg; i++) {
+        int sinkid = atoi(arg[i*3]); // sinkid start from 1 
+        if(sinkid > nsink) error->all(FLERR,"sink_motion needs to be defined after the sink command");
+        sink_dr[sinkid] = atoi(arg[i*3+1]); // direction of sink motion (1 for x, 2 for y, and 3 or z), each step the displacement is a0/2 
+        double velocity = atof(arg[i*3+2]); // a0/s
+        sink_dt[sinkid] = 0.5e12/velocity; // picosecond 
+    }
   }
 
   // reactions for absorption and emission
@@ -403,7 +429,8 @@ void AppRis::input_app(char *command, int narg, char **arg)
     ballistic_flag = 1;
     grow_ballistic();
 
-    bfreq[nballistic] = atof(arg[0]); // dose rate
+    double dose_rate=atof(arg[0]);// dose rate 
+    bfreq[nballistic] = 1e12/nlocal/dose_rate; // time interval to introduce an FP 
     if(min_bfreq > bfreq[nballistic]) min_bfreq = bfreq[nballistic];
     nballistic ++; // number of mixing events
   }
@@ -517,7 +544,6 @@ void AppRis::init_app()
   int flag = 0;
   for ( i = 0; i < nelement; i++) {
       nsites_local[i] = 0;
-      nreserve[i] = 0;
   } 
 
   for ( i = 0; i < nlocal; i++) {
@@ -543,6 +569,7 @@ void AppRis::init_app()
       target_local[i] = 0;
     }
   }*/
+  //ballistic is used for Frenkel pair generation 
 
   for (i = 0; i < nelement; i++) nrecombine[i] = 0;
   for (i = 0; i < nlocal; i++) recombine(i); 
@@ -551,6 +578,13 @@ void AppRis::init_app()
     for(i = 0; i < nballistic; i ++) {
        time_old[i] = 0;
        time_new[i] = 0;
+    }
+  }
+
+  if(sinkmotion_flag) {
+    for(i = 0; i < nsink+1; i ++) {
+       sink_dt_new[i] = 0.0;
+       sink_dt_old[i] = 0.0;
     }
   }
 /*
@@ -667,64 +701,27 @@ double AppRis::site_SP_energy(int i, int j, int estyle)
   int iele = element[i];
   int jele = element[j];
 
-  eng0i = sites_energy(i,estyle); //broken bond with i initially,
-  eng0j = sites_energy(j,estyle); //broken bond with j initially
+  eng0i = sites_energy(i,estyle); //total bonds with i initially,
+  eng0j = sites_energy(j,estyle); //total bonds with j initially
 
   // switch the element and recalculate the site energy 
   element[i] = jele;
   element[j] = iele; 
-  eng1i = sites_energy(i,estyle); //broken bond with i initially,
-  eng1j = sites_energy(j,estyle); //broken bond with j initially
+  eng1i = sites_energy(i,estyle); //total bonds with i after switch
+  eng1j = sites_energy(j,estyle); //total bonds with j after switch 
 
   // switch back 
   element[j] = jele; 
   element[i] = iele; 
-
-/*
-  eng1i = eng1j = 0.0;
-  if(estyle > 0) {
-    eng1i = eng1j = ebond1[itype][jtype]; //bond between i&j, limited to first NN exchange so far
-
-    //bond formed with j after switch
-    for (m = 0; m < numneigh[i]; m++) {
-      jd = neighbor[i][m];
-      if (jd != j)
-         eng1i += ebond1[jele][element[jd]];
-    }
-
-    if (estyle == 2) {
-      for(m = 0; m < numneigh2[i]; m++) {
-        jd = neighbor2[i][m];
-        if (jd != j)
-        eng1i += ebond2[jele][element[jd]];
-      }
-    }
-
-    //bond formed with i after switch
-    for (m = 0; m < numneigh[j]; m++) {
-      jd = neighbor[j][m];
-      if (jd != i)
-         eng1j += ebond1[iele][element[jd]];
-    }
-
-    if (estyle == 2) {
-      for (m = 0; m < numneigh2[j]; m++) {
-        jd = neighbor2[j][m];
-        if (jd != i)
-        eng1j += ebond2[iele][element[jd]];
-      }
-    }
-  }
-*/
 
   //for vacancy the barrier is given by the element to be switched;
   if(element[i] == VACANCY) eng = mbarrier[jele] + eng1i + eng1j - eng0i -eng0j;
   //for SIA the diffusion is given by itself 
   if(element[i] > VACANCY) eng = mbarrier[iele] + eng1i + eng1j - eng0i -eng0j;
 
-  //segregation energy before and after switch 
-  if(segregationflag) 
-    eng += (Eseg[iele][type[j]] + Eseg[jele][type[i]] - Eseg[iele][type[i]] - Eseg[jele][type[j]])/2.0; // before 
+  //Contribution from segregation energy difference before and after switch; defects one step away from sink will automatically jump to sink  
+  if(isink[i] > 0 || isink[j] > 0) 
+    eng += (eisink[iele][isink[j]] + eisink[jele][isink[i]] - eisink[iele][isink[i]] - eisink[jele][isink[j]])/2.0;  
   
   //add elastic contribution if applicable
   if(elastic_flag) 
@@ -742,22 +739,13 @@ double AppRis::site_propensity(int i)
 {
   int j, k, iid, jid, sflag;
 
-  // valid hop and recombination tabulated lists
-  // propensity for each event is input by user
   clear_events(i);
   double prob_reaction = 0.0;
   double prob_hop = 0.0;
   double ebarrier = 0.0;
   double hpropensity = 0.0;
 
-  // once an element reaches its sink, it stops moving.
-  // by doing this way no sink absorption is needed and mass is conserved authomatially 
-  // if(absorption(i)) return 0.0; 
-  // propensity for reactions, only when flagged and enabled
-  // zero barrier event are dealted with separately in site_events()
-  // barriers are from input
-
-  //if(isink[i][element[i]] == 1) return 0;  
+  // Chech possible reactions with barriers 
   if(reaction_flag) { //reaction flag
     for(j = 0; j < nreaction; j++) {
       if(renable[j] == 0) continue;
@@ -765,11 +753,7 @@ double AppRis::site_propensity(int i)
         iid = rinput[j];
         jid = routput[j];
 
-        sflag = 0; 
-        for(k = 0; k < nsink; k++) {
-           if(isink[i][k] == 1 && sink_type[k] == element[jid]) sflag = 1;}
-        
-        if(sflag == 0) {//production at sinks not allowed
+        if(eisink[element[jid]][isink[i]] == 0.0) {// i is not a sink for jid, otherwise no reaction allowed
           ebarrier = rbarrier[j];
           if(elastic_flag) ebarrier += elastic_energy(i,jid) - elastic_energy(i,iid);
           hpropensity = rrate[j] * exp(-ebarrier/KBT);
@@ -780,22 +764,9 @@ double AppRis::site_propensity(int i)
     }
   }
 
-  // for hop events, vacancy only currently
-  // propensity calculated in site_SP_energy();
   if (element[i] < VACANCY) return prob_reaction;
 
-  // check if acceleration is needed and update propensity if so
- /* if (acceleration_flag == 1) {
-     for (j = 0; j < numneigh[i]; j++) {
-       jid = neighbor[i][j];
-
-       for ( int k = 0; k < ntrap; k ++) {
-          if (element[jid] == trap_type[k]) return add_acceleration_event(i,jid);
-       }
-     }
-  }
-*/ 
-  // for hopping event propensity calculated in site_SP_energy();
+  // for hopping event propensity, the barrier is calculated by site_SP_energy();
   for (j = 0; j < numneigh[i]; j++) {
     jid = neighbor[i][j];
     if(element[jid] >= VACANCY) continue; // no SIA-SIA exchange;
@@ -1326,26 +1297,62 @@ void AppRis::ballistic(int n)
 }
 
 /* ----------------------------------------------------------------------
+   check if any sink motion needs to be performed  
+------------------------------------------------------------------------- */
+void AppRis::check_sinkmotion(double t)
+{
+  int nmove = 0;
+  for(int i = 1; i < nsink+1; i ++) {
+     if(sink_dr[i] < 0.0) continue; // skip static sinks 
+     sink_dt_new[i] = static_cast<int>(t/sink_dt[i]);
+     nmove = sink_dt_new[i] - sink_dt_old[i];
+     while (nmove > 0) {  //perform mixing nmix times
+       nmove --;
+       sink_motion(i);
+       if(nmove == 0) sink_dt_old[i] = sink_dt_new[i];  //update time
+    }
+  }
+
+  return;
+}
+
+/* ----------------------------------------------------------------------
+   move sink n in the direction of sink_dr[n] with an amount of a0/2
+   This is done by delete sink n and recreate it with the center displaced by a0/2     
+------------------------------------------------------------------------- */
+void AppRis::sink_motion(int n)
+{
+  int nlattice = nlocal + nghost;
+  double dr=sink_dr[n]; 
+  if(dr == 0.0) xsink[n][0] = xsink[n][0] + 0.5;  
+  if(dr == 1.0) xsink[n][1] = xsink[n][1] + 0.5;  
+  if(dr == 2.0) xsink[n][2] = xsink[n][2] + 0.5;  
+
+  for (int i=0; i<nlattice; i++) {
+      if(isink[i] == n) isink[i] = 0; //remove sink n
+  } 
+
+  sink_creation(n); //recreate sink n
+  return;
+}
+
+/* ----------------------------------------------------------------------
    absorption of an element at site i. This is probabbly not needed.   
 ------------------------------------------------------------------------- */
 void AppRis::absorption(int i)
 {
- // if(isink[i][element[i]] == 1) return 1; 
- // return 0;
-
-  int j, k, m, ei, ei1, ei2, ntotal;
+  int j, k, m, n,ei, ei1, ei2, ntotal;
   double cr[3]; 
   k = element[i];
+  n = isink[i];
   int sflag = 0;
-  for (int n = 0; n < nsink; n++) {
-      if (isink[i][n] == 1 && sink_type[n] == k && ranris->uniform() <= 1.0/sink_mfp[n]) {
+
+  if(eisink[k][n] < -100 && ranris->uniform() <= 1.0/sink_mfp[k][n]) {
          sflag = 1; 
-         nabsorption[n] ++;
-      }
-  } 
+         nabsorption[k][n] ++; // number of element k absorbed by type of isink[i] sink 
+  }
 
-  if(sflag == 0) return;
-
+  if(sflag == 0) return; // no absorption 
            
   if (k == VACANCY)  { // choose a reserved SIA to recombine with 
      j = 0;    
@@ -1354,12 +1361,12 @@ void AppRis::absorption(int i)
  
      while (ei<0) {
         ntotal = 0;
-        for(m = 0; m < VACANCY; m++) {if(nreserve[m] > 0) ntotal += nreserve[m];} // count all reserved SIAs at sinks 
+        for(m = 0; m < VACANCY; m++) {if(nreserve[m][n] > 0) ntotal += nreserve[m][n];} // count all reserved SIAs at sinks 
 
         if (ntotal > 0) {// choose from reserved elements at sinks
-           for(m = 0; m < VACANCY; m++) cr[m] = 1.0*nreserve[m]/ntotal;
+           for(m = 0; m < VACANCY; m++) cr[m] = 1.0*nreserve[m][n]/ntotal;
            if(rand_me < cr[j])  ei = j; 
-           if(nreserve[j] > 0) rand_me -= cr[j]; // skip negatively reserved element 
+           if(nreserve[j][n] > 0) rand_me -= cr[j]; // skip negatively reserved element 
            j++; 
            } else {// choose from element if none have been reserved 
              if(rand_me < ci[j])  ei = j; 
@@ -1373,8 +1380,10 @@ void AppRis::absorption(int i)
      nsites_local[k] --;
      nsites_local[ei] ++;
      element[i] = ei;
-     nreserve[ei] --;
+     nreserve[ei][n] --;
+
   } else { // randomly reserve one element from a dumbbell 
+
      if(k == I1) {ei1 = FE; ei2 = FE;}      
      if(k == I2) {ei1 = FE; ei2 = CU;}      
      if(k == I3) {ei1 = FE; ei2 = NI;}      
@@ -1385,16 +1394,16 @@ void AppRis::absorption(int i)
      nsites_local[k] --;
      if (ranris->uniform()> 0.5) {
         element[i] = ei1;
-        nreserve[ei2]++; 
+        nreserve[ei2][n] ++; 
         nsites_local[ei1] ++;
      } else {
         element[i] = ei2;
-        nreserve[ei1]++; 
+        nreserve[ei1][n] ++; 
         nsites_local[ei2] ++;
      }     
   }
 
-          // update reaction target number
+  // update reaction target number
   if (reaction_flag == 1) {
      for(int ii = 0; ii < nreaction; ii++) {
         if(routput[ii] == k) target_local[ii] ++;
@@ -1480,11 +1489,11 @@ double AppRis::total_energy( )
     }
   }
 
-  if(segregationflag) { // segregation energy 
+  if(eisink_flag) { // segregation energy 
     for(j = 0; j < nlocal; j++) {
       etype = element[j];
-      stype = type[j];
-      penergy += Eseg[etype][stype];;
+      stype = isink[j];
+      if(isink[j] > 0 && eisink[etype][stype] > -100) penergy += eisink[etype][stype];;
     }
   }
 
@@ -1617,14 +1626,11 @@ void AppRis::grow_sinks()
 {
   int n = nsink + 1;
   memory->grow(sink_shape,n,"app/ris:sink_shape");
-  memory->grow(sink_strength,n,"app/ris:sink_strength");
+  memory->grow(sink_range,n,"app/ris:sink_range");
   memory->grow(xsink,n,3,"app/ris:xsink");
-  memory->grow(sink_type,n,"app/ris:sink_type");
   memory->grow(sink_normal,n,"app/ris:sink_normal");
   memory->grow(sink_segment,n,"app/ris:sink_segmant");
   memory->grow(sink_radius,n,"app/ris:sink_radius");
-  memory->grow(sink_mfp,n,"app/ris:sink_mfp");
-  memory->grow(nabsorption,n,"app/ris:nabsorption");
 }
 
 /* ----------------------------------------------------------------------
@@ -1671,7 +1677,7 @@ void AppRis::sink_creation(int n)
   int nlattice = nlocal + nghost;
   double dx,dij[3],rik,rjk,lprd[3];
   double radius = sink_radius[n];
-  double strength = sink_strength[n]*sink_strength[n];
+  double range = sink_range[n]*sink_range[n];
 
   // get periodicity and box length
   periodicity[0] = domain->xperiodic;
@@ -1694,7 +1700,7 @@ void AppRis::sink_creation(int n)
       }
 
       dx = dij[0]*dij[0]+dij[1]*dij[1]+dij[2]*dij[2];
-      if(dx < strength) isink[i][n] = 1;
+      if(dx < range) isink[i] = n;
     }
   }
 
@@ -1713,7 +1719,7 @@ void AppRis::sink_creation(int n)
 
         rik = sqrt(dx);
         rjk = (rik-radius)*(rik-radius) + dij[normal]*dij[normal];
-        if( rjk < strength) isink[i][n] = 1;
+        if( rjk < range) isink[i] = n;
       }
     }
 
@@ -1748,7 +1754,7 @@ void AppRis::sink_creation(int n)
         double phi = fabs(theta_xyz - (d+0.5)*theta);
         rik = sqrt(dx);
         rjk = (rik-radius/cos(phi))*(rik-radius/cos(phi)) + dij[normal]*dij[normal];
-        if( rjk < strength) isink[i][n] = 1;
+        if( rjk < range) isink[i] = n;
       }
     }
   }
@@ -1759,7 +1765,7 @@ void AppRis::sink_creation(int n)
       dx = xyz[i][normal]-xsink[n][normal];
       if(periodicity[normal] && dx >= lprd[normal]/2.0) dx -= lprd[normal];
       if(periodicity[normal] && dx <= -lprd[normal]/2.0) dx += lprd[normal];
-      if(dx*dx < strength) isink[i][n] = 1;
+      if(dx*dx < range) isink[i] = n;
     }
   }
 
@@ -1773,7 +1779,7 @@ void AppRis::sink_creation(int n)
       }
 
       dx = dij[0]*dij[0]+dij[1]*dij[1]+dij[2]*dij[2];
-      if(dx < strength) isink[i][n] = 1;
+      if(dx < range) isink[i] = n;
     }
   }
 }

@@ -37,9 +37,6 @@ class AppRis : public AppLattice {
   void site_event_rejection(int, class RandomPark *) {}
   double site_propensity(int);
   void site_event(int, class RandomPark *);
-//parameter for segregation 
-  int segregationflag; 
-  double **Eseg;
 
  private:
   int engstyle,nn1flag,nn2flag,barrierflag,diffusionflag; // 1NN or 2NN bonds
@@ -73,11 +70,11 @@ class AppRis : public AppLattice {
   double evol[11],cijkl[3][3][3][3];
 
 //parameter for sinks 
-  int nsink,sink_flag;
-  int *sink_type,*sink_shape,*sink_segment,*sink_normal,*nabsorption,*nreserve;
-  int **isink;
-  double *ci,*sink_strength,*sink_radius,*sink_mfp;
-  double **xsink;  
+  int nsink,sink_flag,eisink_flag;
+  int *isink,*sink_shape,*sink_segment,*sink_normal;
+  int **nabsorption,**nreserve;
+  double *ci,*sink_range,*sink_radius,*sink_dr,*sink_dt,*sink_dt_new,*sink_dt_old;
+  double **xsink,**eisink,**sink_mfp;  
 
 //parameter for reaction
   int nreaction;  
@@ -156,6 +153,8 @@ class AppRis : public AppLattice {
 
   void grow_sinks(); //sink
   void sink_creation(int);
+  void check_sinkmotion(double); 
+  void sink_motion(int);
 
   int recombine(int); // recombination 
   int vacancy_trap(int); 

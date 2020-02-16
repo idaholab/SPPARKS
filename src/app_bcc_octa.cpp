@@ -303,7 +303,8 @@ void AppBccOcta::input_app(char *command, int narg, char **arg)
     ballistic_flag = 1;
     grow_ballistic();
 
-    bfreq[nballistic] = atof(arg[0]); // dose rate
+    double dose_rate=atof(arg[0]);// dose rate 
+    bfreq[nballistic] = 1e12/nlocal/dose_rate; // time interval to introduce an FP 
     gas_rate = atof(arg[1]); // gas/V ratio 
     nballistic ++; // number of mixing events
   }
@@ -690,6 +691,7 @@ double AppBccOcta::site_concentration(int i, int estyle)
     return ci;
   }
 
+  return 0.0;
 }
 /* ----------------------------------------------------------------------
   compute barriers for an exchange event between i & j
@@ -1449,7 +1451,7 @@ void AppBccOcta::ballistic(int n)
 
   // gas generation
   if(gas_rate == 0) return; // no gas generation 
-  if(ranbccocta->uniform() > gas_rate) return; // gas/V ratio no big than one 
+  if(ranbccocta->uniform() > gas_rate) return; // gas/V_octa ratio no big than one 
   int findg = 1;   
   while (findg) { 
     int id = static_cast<int> (nlocal*ranbccocta->uniform()); 
