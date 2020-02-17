@@ -11,7 +11,7 @@
    See the README file in the top-level SPPARKS directory.
 *************************************************************************************
    This application does radiation segregation simulations based on Soisson 2006. 
-   Contributer: Yongfeng Zhang, yongfeng.zhang@inl.gov
+   Contributer: Yongfeng Zhang, yongfeng.zhang@inl.gov, yzhang2446@wisc.edu
 ------------------------------------------------------------------------- */
 
 #include "math.h"
@@ -56,10 +56,10 @@ AppRis::AppRis(SPPARKS *spk, int narg, char **arg) :
   if (narg >= 3) concentrationflag = atoi(arg[2]);
   if (narg >= 4) diffusionflag = atoi(arg[3]);
   // calculate concentration fiels for each elements, so that concentrationflag = nelement 
-  if (concentrationflag) {ndouble += concentrationflag;}
-  ndiffusion = diffusionflag;
+  // if (concentrationflag) {ndouble += concentrationflag;}
+  // ndiffusion = diffusionflag;
   // darray 1-4 for msd if activated, followed by concentrations, needs the initial atomic id, aid
-  if (diffusionflag == 1) {ninteger++; ndouble += 4;}
+  if (diffusionflag >= 1) {ninteger++; ndouble += 4;}
 
   create_arrays();
 
@@ -205,7 +205,8 @@ void AppRis::input_app(char *command, int narg, char **arg)
     memory->create(ci,nelement,"app/ris:ci"); //static concentration based on current configuration 
     memory->create(ct,nelement,"app/ris:ct"); //time averaged concentration 
     memory->create(ct_new,nelement,"app/ris:ct_new"); //time averaged concentration 
-    memory->create(ebond1,nelement,nelement,"app/ris:ebond1");
+    memory->create(ebond1,nelement,nelement,"app/ris:ebond1"); // 1NN bond energy 
+    if(diffusionflag) memory->create(Lij,nelement,nelement,"app/ris:Lij"); //Onsager coefficient 
 
     hcount = new int [nelement]; // total numner of switching with a vacancy;
 
@@ -232,7 +233,6 @@ void AppRis::input_app(char *command, int narg, char **arg)
     for (i = 0; i < nelement; i++ ) {
       for (j = i; j < nelement; j++ ) {
         ibond = ibonde(i+1,j+1,nelement);
-        //fprintf(screen, "%d %d %d\n", i, j, ibond); 
         ebond2[i][j] = atof(arg[ibond]);
         if (j > i) ebond2[j][i] = ebond2[i][j];
       }
@@ -423,6 +423,23 @@ void AppRis::input_app(char *command, int narg, char **arg)
     nreaction ++;
   }
 
+  // reactions for absorption and emission
+  else if (strcmp(command, "ris") ==0) {
+    ris_flag = 1;
+    
+    if(nelement <= 0) error->all(FLERR,"ris: no elements have been defined!");
+    memory->create(ris_type, nelement, "app/ris:ris_type");
+    memory->create(ris_ci, nelement, "app/ris:ris_ci");
+    //memory->create(ct_site, nlocal, nelement, "app/ris:ct_site");
+    int iarg = narg/2;
+    for (i = 0; i < iarg; i++) {
+      ris_type[i] = atoi(arg[i*2]);
+      ris_ci[ris_type[i]] = atof(arg[i*2+1]);
+      iarg ++;
+    }
+  }
+
+  // ballistic for defect production   
   else if (strcmp(command, "ballistic") ==0) {
 
     if(narg < 1) error->all(FLERR,"illegal ballistic command");
@@ -506,7 +523,7 @@ void AppRis::grow_app()
   element = iarray[1];  // element type; i2 in input
 
   if(diffusionflag)    aid = iarray[2]; // initially set as global ID, must use set i3 unique in command line
-  if(diffusionflag + concentrationflag) disp = darray; // msd; zero initially
+  if(diffusionflag)   disp = darray; // msd; zero initially
 }
 
 /* ----------------------------------------------------------------------
@@ -587,16 +604,16 @@ void AppRis::init_app()
        sink_dt_old[i] = 0.0;
     }
   }
-/*
+
   // initialize the time_list for ballistic mixing
   if(diffusionflag) {
-    for(i = 0; i < ndiffusion; i ++) {
+    for(i = 0; i < 4; i ++) { // four component of diffusion
       for(j = 0; j < nlocal; j++){
          disp[i][j] = 0.0;
       }
     }
   }
-*/
+
  //initialize the time_list for ballistic mixing
 if(concentrationflag) {
   //concentration_field();
@@ -605,11 +622,11 @@ if(concentrationflag) {
      ct[i] = 0.0; 
      ct_new[i] = 0.0; 
   } 
-  for(i = 0; i < concentrationflag; i ++) {
-     for(j = 0; j < nlocal; j++){
-        disp[i][j] = 0.0;
-     }
-  }
+//  for(i = 0; i < concentrationflag; i ++) {
+//     for(j = 0; j < nlocal; j++){
+//        disp[i][j] = 0.0;
+//     }
+//  }
 }
 
 /*
@@ -645,6 +662,20 @@ void AppRis::setup_app()
 
   double KB = 0.00008617;
   KBT = temperature * KB;
+
+  // simulation cell dimension
+  periodicity[0] = domain->xperiodic;
+  periodicity[1] = domain->yperiodic;
+  periodicity[2] = domain->zperiodic;
+  lprd[0] = domain->xprd;
+  lprd[1] = domain->yprd;
+  lprd[2] = domain->zprd;
+
+  boxlo[0] = domain->boxxlo;
+  boxlo[1] = domain->boxylo;
+  boxlo[2] = domain->boxzlo;
+
+  volume = lprd[0]*lprd[1]*lprd[2];
 }
 
 /* ----------------------------------------------------------------------
@@ -828,24 +859,14 @@ void AppRis::site_event(int i, class RandomPark *random)
 
     hcount[element[i]] ++;
 
-    /*
-    // calculate MSD for each atom if activated
+    // calculate MSD for each atom if activated. How to implement with defect annihilation???
     if(diffusionflag) {
       // switch global atomic id
       k = aid[i];
       aid[i] = aid[j];
       aid[j] = aid[i];
 
-      //update and switch displacement
-      int periodicity[3];
-      double dij[3],lprd[3];
-      periodicity[0] = domain->xperiodic;
-      periodicity[1] = domain->yperiodic;
-      periodicity[2] = domain->zperiodic;
-      lprd[0] = domain->xprd;
-      lprd[1] = domain->yprd;
-      lprd[2] = domain->zprd;
-
+      double dij[3];
       for (k = 0; k < 3; k++) { //update
         dij[k] = xyz[j][k] - xyz[i][k];
         if (periodicity[k] && dij[k] >= lprd[k]/2.0) dij[k] -= lprd[k];
@@ -861,7 +882,7 @@ void AppRis::site_event(int i, class RandomPark *random)
       }
       disp[3][i] = disp[0][i]*disp[0][i] + disp[1][i]*disp[1][i] + disp[2][i]*disp[2][i];
       disp[3][j] = disp[0][j]*disp[0][j] + disp[1][j]*disp[1][j] + disp[2][j]*disp[2][j];
-    }*/
+    }
 
   } else {
 
@@ -1501,15 +1522,81 @@ double AppRis::total_energy( )
 }
 
 /* ----------------------------------------------------------------------
+  calculate the Onsager coefficient based on atomic displacement  
+------------------------------------------------------------------------- */
+void AppRis::onsager(double t)
+{
+  int i,j;
+  double dx,total_disp[10];
+
+  if(t <= 0) return;
+
+  for (i = 0; i < nelement; i++) total_disp[i] = 0.0;
+
+  // calculate the total displacement of each element
+  for (i = 0; i < nlocal; i++) {
+     total_disp[element[i]] += disp[3][i];      
+  } 
+
+  for (i = 0; i < nelement; i++) {
+  for (j = i; j < nelement; j++) {
+      Lij[i][j] = sqrt(total_disp[i]*total_disp[j]);
+      Lij[i][j] /=(6*t*KBT);
+      //Lij[j][i] = Lij[i][j];
+      fprintf(screen, "onsager %d %d %f\n", i, j, Lij[i][j]); 
+  }
+  }
+
+  return;
+}
+
+/* ----------------------------------------------------------------------
+  Calculate time dependent ris of given element 
+------------------------------------------------------------------------- */
+void AppRis::ris_time()
+{
+  int i,j,ncell;
+  int **icell; 
+
+  ncell = static_cast<int>(lprd[2]); // bin size = 1
+  icell = new int [2000][10];
+
+  for(i = 0; i < nelement; i++) ris_total[i] = 0.0;
+  for(i = 0; i < ncell; i++) {
+  for(j = 0; j < nelement; j++) {
+     icell[i][j] = 0;
+  }}
+
+  for(i = 0; i < nlocal; i++) {
+     int iz = static_cast<int>(xyz[i][2] - boxlo[2]);
+     icell[iz][element[i]] += 1;
+  } 
+
+  int nlayer = nlocal/ncell; 
+  for(i = 0; i < ncell; i++) {
+  for(j = 0; j < nelement; j++) {
+     if(ris_ci[j] == 0.0) continue; // do not calcualte for those not monitored 
+     double dcij = 1.0*(icell[i][j]/nlayer - ris_ci[j]); // deviation from nominal concentration
+     ris_total[j] += fabs(dcij)/2.0; // count both enrichment and depletion and the divide the sum by 2 
+  }
+  }  
+
+  fprintf(screen, "ris Cr %f \n", ris_total[1]); 
+  delete icell;
+  return;
+}
+
+/* ----------------------------------------------------------------------
   Integrate c*t at each site for fractional occupancy over time 
 ------------------------------------------------------------------------- */
 void AppRis::concentration_field(double dt)
 {
   dt_new += dt; // update time interval 
   for(int i = 0; i < nlocal; i++) {
-     disp[element[i]][i] += dt;
      ct_new[element[i]] += dt;      
-  } // c[element[i]][i] = 1; disp += c[element[i][i] * dt  }
+  } 
+
+  return;
 }
 
 /* ----------------------------------------------------------------------

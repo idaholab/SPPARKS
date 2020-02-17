@@ -81,6 +81,7 @@ class AppLattice : public App {
   virtual void time_averaged_concentration() {}; // calculate time-averaged concentration 
   virtual void cluster() {} //yongfeng
   virtual void sia_concentration(double) {} //Yongfeng 
+  virtual void onsager(double) {} //Yongfeng 
 
  protected:
   int me,nprocs;
@@ -106,6 +107,7 @@ class AppLattice : public App {
   int acceleration_flag;       // flag for accelerated KMC 
   int concentrationflag;       // flag for concentration field calculation  
   int clst_flag;               // flag for cluster analysis   
+  int diffusionflag;           // 1 if calculate the onsager coefficient
 
   int sweepflag;               // set if rejection KMC solver
   int sectorflag;              // 1 if partition my domain into sectors

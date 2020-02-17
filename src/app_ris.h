@@ -39,7 +39,7 @@ class AppRis : public AppLattice {
   void site_event(int, class RandomPark *);
 
  private:
-  int engstyle,nn1flag,nn2flag,barrierflag,diffusionflag; // 1NN or 2NN bonds
+  int engstyle,nn1flag,nn2flag,barrierflag,ris_flag; // 1NN or 2NN bonds
   int ndiffusion; 
   int *type,*element,*aid; // variables on each lattice site
   int firsttime;
@@ -57,6 +57,8 @@ class AppRis : public AppLattice {
   double **disp; //atomic displacement  
   double *mbarrier; //migration barriers
   int *hcount; 
+  int periodicity[3]; //periodicity;
+  double boxlo[3],lprd[3],volume; //simulation cell size 
 
   int nrecombine[9]; //number of recombination event
 
@@ -91,13 +93,19 @@ class AppRis : public AppLattice {
   int *time_old,*time_new;
   double *bfreq;
 
-//parameter for ballistic mixing 
+//parameter for time averaged concentration  
   double *ct,*ct_new,dt_new;
+
+//parameter for ris calculation 
+  int *ris_type;
+  double *ris_ci, *ris_total;
 
 //parameter for acceleration 
   int ntrap; 
   int *trap_type;
 
+//parameter for Onsager coefficient calculation  
+  int **Lij;
 
   struct Event {           // one event for an owned site
     int style;             // reaction style = HOP,RECOMBINE 
@@ -163,6 +171,9 @@ class AppRis : public AppLattice {
   void concentration_field(double); //calculation concentration field    
   void time_averaged_concentration(); // calculate time-averaged concentration 
   double real_time(double); //compute fvt   
+
+  void ris_time(); // calculate ris 
+  void onsager(double); // calculate the Onsager coefficients 
 };
 
 }

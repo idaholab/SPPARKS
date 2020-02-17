@@ -498,6 +498,7 @@ void AppLattice::iterate_kmc_global(double stoptime)
         if (reaction_flag) check_reaction(); //yongfeng
         if (ballistic_flag) check_ballistic(time); //yongfeng
         if (sinkmotion_flag) check_sinkmotion(time); //yongfeng
+        if (diffusionflag) onsager(time); //yongfeng
         //if (ballistic_flag) sia_concentration(dt_step); // yongfeng 
 	timer->stamp(TIME_APP);
       } else {
