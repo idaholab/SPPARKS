@@ -49,7 +49,9 @@ AppRis::AppRis(SPPARKS *spk, int narg, char **arg) :
 
   engstyle = 1; //1 for 1NN interaction, 2 for 2NN interaction; default 1
   diffusionflag = 0; //flag for MSD calculations, 1 for yes, 0 for no; default 0
-  concentrationflag = 0; //flag for concentration calculation 
+  concentrationflag = 0; //flag for concentration calculation
+  ris_flag = 0; 
+
   if (narg < 1) error->all(FLERR,"Illegal app_style command");
   if (narg >= 2) engstyle = atoi(arg[1]);
   if (engstyle == 2) delpropensity += 1;// increase delpropensity for 2NN interaction
@@ -330,7 +332,7 @@ void AppRis::input_app(char *command, int narg, char **arg)
     for (i = 0; i < iarg; i++) {
       int ielement = i*2;
       evol[ielement] = atof(arg[i*2+1]);
-      iarg ++;
+     // iarg ++;
     }
   }
 
@@ -430,12 +432,14 @@ void AppRis::input_app(char *command, int narg, char **arg)
     if(nelement <= 0) error->all(FLERR,"ris: no elements have been defined!");
     memory->create(ris_type, nelement, "app/ris:ris_type");
     memory->create(ris_ci, nelement, "app/ris:ris_ci");
+    memory->create(ris_total, nelement, "app/ris:ris_total");
     //memory->create(ct_site, nlocal, nelement, "app/ris:ct_site");
     int iarg = narg/2;
+
+    for (i = 0; i < nelement; i++) ris_ci[i] = 0.0;
     for (i = 0; i < iarg; i++) {
       ris_type[i] = atoi(arg[i*2]);
       ris_ci[ris_type[i]] = atof(arg[i*2+1]);
-      iarg ++;
     }
   }
 
@@ -1559,10 +1563,13 @@ void AppRis::ris_time()
   int **icell; 
 
   ncell = static_cast<int>(lprd[2]); // bin size = 1
-  icell = new int [2000][10];
+  icell = new int *[ncell];
+  for(i = 0; i < ncell; i++) {
+     icell[i] = new int[nelement];
+  } 
 
   for(i = 0; i < nelement; i++) ris_total[i] = 0.0;
-  for(i = 0; i < ncell; i++) {
+  for(i = 0; i < ncell; i++){ 
   for(j = 0; j < nelement; j++) {
      icell[i][j] = 0;
   }}
@@ -1573,16 +1580,19 @@ void AppRis::ris_time()
   } 
 
   int nlayer = nlocal/ncell; 
-  for(i = 0; i < ncell; i++) {
   for(j = 0; j < nelement; j++) {
      if(ris_ci[j] == 0.0) continue; // do not calcualte for those not monitored 
-     double dcij = 1.0*(icell[i][j]/nlayer - ris_ci[j]); // deviation from nominal concentration
-     ris_total[j] += fabs(dcij)/2.0; // count both enrichment and depletion and the divide the sum by 2 
-  }
+     for(i = 0; i < ncell; i++) {
+        double dcij = 1.0*icell[i][j]/nlayer - ris_ci[j]; // deviation from nominal concentration
+        ris_total[j] += fabs(dcij)/2.0; // count both enrichment and depletion and the divide the sum by 2 
+     }
   }  
 
-  fprintf(screen, "ris Cr %f \n", ris_total[1]); 
-  delete icell;
+  for(i = 0; i < ncell; i++) {
+     delete [] icell[i]; 
+  } 
+  delete [] icell;
+
   return;
 }
 
