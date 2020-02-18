@@ -98,7 +98,9 @@ class AppRis : public AppLattice {
 
 //parameter for ris calculation 
   int *ris_type;
-  double *ris_ci, *ris_total;
+  double *ris_total;
+  double iss_sth[10];
+  double *ris_ci;
 
 //parameter for acceleration 
   int ntrap; 

@@ -113,6 +113,10 @@ AppRis::AppRis(SPPARKS *spk, int narg, char **arg) :
   numneigh2 = NULL;
   neighbor2 = NULL;
 
+  // ris 
+  ris_type = NULL;
+  ris_ci = ris_total = NULL;
+
 }
 
 /* ---------------------------------------------------------------------- */
@@ -430,19 +434,18 @@ void AppRis::input_app(char *command, int narg, char **arg)
     ris_flag = 1;
     
     if(nelement <= 0) error->all(FLERR,"ris: no elements have been defined!");
-    memory->create(ris_type, nelement, "app/ris:ris_type");
-    memory->create(ris_ci, nelement, "app/ris:ris_ci");
-    memory->create(ris_total, nelement, "app/ris:ris_total");
-    //memory->create(ct_site, nlocal, nelement, "app/ris:ct_site");
+    memory->create(ris_type,nelement, "app/ris:ris_type");
+    memory->create(ris_ci,nelement, "app/ris:ris_ci");
+    memory->create(ris_total,nelement, "app/ris:ris_total");
+    //memory->create(ct_site,nlocal,nelement,"app/ris:ct_site"); //time averaged concentration 
     int iarg = narg/2;
 
-    for (i = 0; i < nelement; i++) ris_ci[i] = 0.0;
+    for (i = 0; i < nelement; i++) {ris_ci[i] = 0.0; ris_total[i] = 0.0;}
     for (i = 0; i < iarg; i++) {
       ris_type[i] = atoi(arg[i*2]);
       ris_ci[ris_type[i]] = atof(arg[i*2+1]);
     }
   }
-
   // ballistic for defect production   
   else if (strcmp(command, "ballistic") ==0) {
 
@@ -625,6 +628,9 @@ if(concentrationflag) {
   for(i = 0; i < nelement; i ++) {
      ct[i] = 0.0; 
      ct_new[i] = 0.0; 
+     //for(j = 0; j < nlocal; j ++) {
+	//ct_site[j][i] = 0.0;
+     //}
   } 
 //  for(i = 0; i < concentrationflag; i ++) {
 //     for(j = 0; j < nlocal; j++){
@@ -1603,7 +1609,8 @@ void AppRis::concentration_field(double dt)
 {
   dt_new += dt; // update time interval 
   for(int i = 0; i < nlocal; i++) {
-     ct_new[element[i]] += dt;      
+     ct_new[element[i]] += dt; 
+     //ct_site[i][element[i]] += dt;     
   } 
 
   return;
