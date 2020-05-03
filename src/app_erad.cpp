@@ -353,9 +353,9 @@ void AppErad::input_app(char *command, int narg, char **arg)
 
     if(narg != 10) error->all(FLERR,"illegal sink command");
     if(sink_flag == 0) {
-      memory->create(isink, nlattice, nelement,"app/erad:isink");
+      memory->create(isink, nlattice, nelement+1,"app/erad:isink");
       for(i = 0; i < nlattice; i++) {
-        for(j = 0; j < nelement; j++)  isink[i][j] = 0;
+        for(j = 0; j < nelement+1; j++)  isink[i][j] = 0;
       }
     }
 
@@ -1153,10 +1153,9 @@ void AppErad::site_event(int i, class RandomPark *random)
     //if(rid >= 0) vec_recombine(j,rid); // j was at i site before diffusion 
 
     //sink absorption of element[j] after hopping,for hop only since no element produced at its sinks
-    if(nsink > 0) {
-      absorption(i);
-      absorption(j); 
-    }
+    if(sink_flag && isink[i][element[i]-1] == 1)   {absorption(i); }
+    if(sink_flag && isink[j][element[j]-1] == 1)   {absorption(j); }
+    //if(fabs(xyz[j][2]) < 2.0) fprintf(screen,"i %d %d %d, %f \n",j, element[j], isink[16791][2],xyz[j][2]); 
   } 
 
   // compute propensity changes for participating sites i & j and their neighbors
@@ -1181,25 +1180,23 @@ void AppErad::site_event(int i, class RandomPark *random)
 void AppErad::absorption(int i)
 {
   int k = element[i];
-  for (int n = 0; n < nsink; n++) {
-      if(isink[i][k-1] == 1) {
-        double rand_me = ranerad->uniform();
-        if(rand_me <= 1.0/sink_mfp[n]) {
-          nabsorption[n] ++;
-          nsites_local[k-1] --;
-          nsites_local[FE-1] ++;
-          element[i] = FE;
 
-          if(mfpflag) hcount[i] = 0; 
-          // update reaction target number
-          if(reaction_flag == 1) {
-            for(int ii = 0; ii < nreaction; ii++) {
-               if(routput[ii] == k) target_local[ii] ++;
-            }
-          }
+  double rand_me = ranerad->uniform();
+  //if(rand_me <= 1.0/sink_mfp[n]) {
+     //nabsorption[n] ++;
+     nsites_local[k-1] --;
+     nsites_local[FE-1] ++;
+     element[i] = FE;
+
+     if(mfpflag) hcount[i] = 0; 
+     // update reaction target number
+     if(reaction_flag == 1) {
+     for(int ii = 0; ii < nreaction; ii++) {
+        if(routput[ii] == k) target_local[ii] ++;
         }
-      }
-   }
+     }
+  //}
+//	fprintf(screen,"%d %d %d %d %d %d %f,\n",k,isink[i][1],isink[i][2],isink[i][4],isink[i][5],isink[i][k-1],xyz[i][2]);
 }
 
 /* ----------------------------------------------------------------------

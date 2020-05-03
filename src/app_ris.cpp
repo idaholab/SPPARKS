@@ -619,6 +619,11 @@ void AppRis::init_app()
          disp[i][j] = 0.0;
       }
     }
+    for(i = 0; i < nelement; i ++) { // initiate the onsager coefficients
+        for(j = 0; j < nelement; j++) {
+	   Lij[i][j] = 0.0;
+	}
+    }
   }
 
  //initialize the time_list for ballistic mixing
@@ -761,7 +766,7 @@ double AppRis::site_SP_energy(int i, int j, int estyle)
   if(element[i] > VACANCY) eng = mbarrier[iele] + eng1i + eng1j - eng0i -eng0j;
 
   //Contribution from segregation energy difference before and after switch; defects one step away from sink will automatically jump to sink  
-  if(isink[i] > 0 || isink[j] > 0) 
+  if(eisink_flag && (isink[i] > 0 || isink[j] > 0)) 
     eng += (eisink[iele][isink[j]] + eisink[jele][isink[i]] - eisink[iele][isink[i]] - eisink[jele][isink[j]])/2.0;  
   
   //add elastic contribution if applicable
@@ -794,7 +799,7 @@ double AppRis::site_propensity(int i)
         iid = rinput[j];
         jid = routput[j];
 
-        if(eisink[element[jid]][isink[i]] == 0.0) {// i is not a sink for jid, otherwise no reaction allowed
+        if(eisink_flag && eisink[element[jid]][isink[i]] == 0.0) {// i is not a sink for jid, otherwise no reaction allowed
           ebarrier = rbarrier[j];
           if(elastic_flag) ebarrier += elastic_energy(i,jid) - elastic_energy(i,iid);
           hpropensity = rrate[j] * exp(-ebarrier/KBT);
@@ -1524,7 +1529,7 @@ double AppRis::total_energy( )
     for(j = 0; j < nlocal; j++) {
       etype = element[j];
       stype = isink[j];
-      if(isink[j] > 0 && eisink[etype][stype] > -100) penergy += eisink[etype][stype];;
+      if(stype > 0 && eisink[etype][stype] > -100) penergy += eisink[etype][stype];;
     }
   }
 
@@ -1537,23 +1542,28 @@ double AppRis::total_energy( )
 void AppRis::onsager(double t)
 {
   int i,j;
-  double dx,total_disp[10];
+  double dx,total_disp[3][10];
 
   if(t <= 0) return;
 
-  for (i = 0; i < nelement; i++) total_disp[i] = 0.0;
+  for (j = 0; i < 3; i++) { 
+  for (j = 0; j < nelement; j++) { 
+	  total_disp[i][j] = 0.0;
+  }
+  }
 
   // calculate the total displacement of each element
   for (i = 0; i < nlocal; i++) {
-     total_disp[element[i]] += disp[3][i];      
+     total_disp[0][element[i]] += disp[0][i];      
+     total_disp[1][element[i]] += disp[1][i];      
+     total_disp[2][element[i]] += disp[2][i];      
   } 
 
   for (i = 0; i < nelement; i++) {
   for (j = i; j < nelement; j++) {
-      Lij[i][j] = sqrt(total_disp[i]*total_disp[j]);
-      Lij[i][j] /=(6*t*KBT);
-      //Lij[j][i] = Lij[i][j];
-      fprintf(screen, "onsager %d %d %f\n", i, j, Lij[i][j]); 
+      Lij[i][j] = total_disp[0][i]*total_disp[0][j] + total_disp[1][i]*total_disp[1][j]+total_disp[2][i]*total_disp[2][j];
+      Lij[i][j] /=(6*t*KBT*volume*1e-12);
+      Lij[j][i] = Lij[i][j];
   }
   }
 

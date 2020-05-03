@@ -30,9 +30,10 @@ enum{hFE=11,hCU,hNI,hMN,hSi,hP,hC};               // hop steps for each element
 enum{sink=20};                                    // number of sink absorption   
 enum{recombine=31};                               // number of recombination    
 enum{cFE=40,cCU,cNI,cVACANCY,cI1,cI2,cI3,cI4,cI5,cI6};        // time averaged concentration    
-enum{dFE=51,dVACANCY,dCU,dNI,dMN,dSi,dP,dC,dSIA}; // MSD for each element 
+enum{dFE=51,dCU,dNI,dVACANCY,dI1,dI2,dI3,dI4,dI5,dI6}; // MSD for each element 
 enum{energy=61,treal,fvt};                        // energy and realistic time  
 enum{ris=70};                                     // number of ris   
+enum{lij=80};                                     // onsager coefficient   
 /* ---------------------------------------------------------------------- */
 
 DiagRis::DiagRis(SPPARKS *spk, int narg, char **arg) : Diag(spk,narg,arg)
@@ -121,16 +122,18 @@ void DiagRis::init()
     else if (strcmp(list[i],"hmn") == 0) which[i] = hMN;
     else if (strcmp(list[i],"hp") == 0) which[i] = hP;
     else if (strcmp(list[i],"hc") == 0) which[i] = hC;
- 
+   */ 
     else if (strcmp(list[i],"dfe") == 0) which[i] = dFE;//MSD 
-    else if (strcmp(list[i],"dvac") == 0) which[i] = dVACANCY; 
     else if (strcmp(list[i],"dcu") == 0) which[i] = dCU;
     else if (strcmp(list[i],"dni") == 0) which[i] = dNI;
-    else if (strcmp(list[i],"dmn") == 0) which[i] = dMN;
-    else if (strcmp(list[i],"dp") == 0) which[i] = dP;
-    else if (strcmp(list[i],"dc") == 0) which[i] = dC;
-    else if (strcmp(list[i],"dsia") == 0) which[i] = dSIA; 
- 
+    else if (strcmp(list[i],"dvac") == 0) which[i] = dVACANCY; 
+    else if (strcmp(list[i],"di1") == 0) which[i] = dI1;
+    else if (strcmp(list[i],"di2") == 0) which[i] = dI2;
+    else if (strcmp(list[i],"di3") == 0) which[i] = dI3;
+    else if (strcmp(list[i],"di4") == 0) which[i] = dI4;
+    else if (strcmp(list[i],"di5") == 0) which[i] = dI5;
+    else if (strcmp(list[i],"di6") == 0) which[i] = dI6;
+ /*
     else if (strcmp(list[i],"mfe") == 0) which[i] = mFE;//MSD 
     else if (strcmp(list[i],"mvac") == 0) which[i] = mVACANCY; 
     else if (strcmp(list[i],"mcu") == 0) which[i] = mCU;
@@ -156,6 +159,13 @@ void DiagRis::init()
       which[i] = ris + id;
     }
 
+    // onsager coefficients  
+    else if (list[i][0] == 'l' && list[i][1] == 'i' && list[i][2] == 'j') {
+      int id1 = list[i][3] - '0';
+      int id2 = list[i][4] - '0';
+      which[i] = lij + id1*10 + id2;
+    }
+
     else error->all(FLERR,"Invalid value setting in diag_style ris");
   }
 
@@ -166,11 +176,11 @@ void DiagRis::init()
       csiteflag = 1;
   //  if (which[i] == hFE || which[i] == hCU || which[i] == hNI || which[i] == hMN || which[i] == hP || which[i] == hC)
   //    hopflag = 1;
-  //  if(which[i] >= dFE && appris->diffusionflag == 1) msdflag = 1;
-  //  if(which[i] >= dFE && which[i] <= dSIA && msdflag == 0) error->all(FLERR,"MSD calculation need displacement calculated in appris"); 
+    if(which[i] >= dFE && appris->diffusionflag == 1) msdflag = 1;
+  //  if(which[i] >= dFE && which[i] <= dI6 && msdflag == 0) error->all(FLERR,"MSD calculation need displacement calculated in appris"); 
   }
 
-  for (int i = 0; i < nlist; i++) { ivector[i] = 0;
+  for (int i = 0; i < nlist; i++) {ivector[i] = 0;
     dvector[i] = 0.0;
   }
 
@@ -210,14 +220,14 @@ void DiagRis::compute()
   if(hopflag) {// hop event of each element 
     for(int i = 1; i < nelement+1; i++) {nhop[i] = 0; nhop[i] = appris->hcount[i];}   
   }
-
+*/
   if(msdflag) {// MSD calculation 
     int *element = appris->element;
     msd[FE] = msd[VACANCY] = msd[CU] = msd[NI] = 0.0;
-    msd[MN] = msd[P] = msd[C] = msd[SIA] =0.0;
+    msd[I1] = msd[I2] = msd[I3] = msd[I4] =msd[I5] =msd[I6]  =0.0;
     if(siteflag == 0) {//need to count total sites if not calculated above 
       sites[FE] = sites[VACANCY] = sites[CU] = sites[NI] = 0;
-      sites[MN] = sites[P] = sites[C] = sites[SIA] = 0;
+      sites[I1] = sites[I2] = sites[I3] = sites[I4] = sites[I5] = sites[I6] = 0;
       for (int i = 0; i < nlocal; i++) sites[element[i]]++;
     }
 
@@ -225,7 +235,7 @@ void DiagRis::compute()
        msd[element[i]] += appris->disp[3][i];
     }   
   }
-*/
+
     //fprintf(screen, "%f %f \n", csites[1],csites[2]);
   for (int i = 0; i < nlist; i++) {
     if (which[i] == FE) ivalue = sites[FE]; //total sites
@@ -264,16 +274,18 @@ void DiagRis::compute()
     else if (which[i] == hMN) ivalue = nhop[MN]; 
     else if (which[i] == hP) ivalue = nhop[P]; 
     else if (which[i] == hC) ivalue = nhop[C];
-
+    */
     else if (which[i] == dFE && sites[FE] > 0) dvalue = msd[FE]/sites[FE];//MSD 
     else if (which[i] == dVACANCY && sites[VACANCY] > 0) dvalue = msd[VACANCY]/sites[VACANCY]; 
     else if (which[i] == dCU && sites[CU] > 0) dvalue = msd[CU]/sites[CU]; 
     else if (which[i] == dNI && sites[NI] > 0) dvalue = msd[NI]/sites[NI]; 
-    else if (which[i] == dMN && sites[MN] > 0) dvalue = msd[MN]/sites[MN]; 
-    else if (which[i] == dP && sites[P] > 0) dvalue = msd[P]/sites[P]; 
-    else if (which[i] == dC && sites[C] > 0) dvalue = msd[C]/sites[C]; 
-    else if (which[i] == dSIA && sites[SIA] > 0) dvalue = msd[SIA]/sites[SIA]; 
-   
+    else if (which[i] == dI1 && sites[I1] > 0) dvalue = msd[I1]/sites[I1]; 
+    else if (which[i] == dI2 && sites[I2] > 0) dvalue = msd[I2]/sites[I2]; 
+    else if (which[i] == dI3 && sites[I3] > 0) dvalue = msd[I3]/sites[I3]; 
+    else if (which[i] == dI4 && sites[I4] > 0) dvalue = msd[I4]/sites[I4]; 
+    else if (which[i] == dI5 && sites[I5] > 0) dvalue = msd[I5]/sites[I5]; 
+    else if (which[i] == dI6 && sites[I6] > 0) dvalue = msd[I6]/sites[I6]; 
+   /*
     //else if (which[i] == recombine) dvalue = appris->nrecombine; //number of reocmbination 
     else if (which[i] == treal) dvalue = appris->realtime; //realistic time  
     else if (which[i] == fvt) dvalue = appris->fvt; //realistic time  
@@ -284,9 +296,14 @@ void DiagRis::compute()
      // ivalue = appris->nabsorption[id-1];
      ivalue = 0; 
     }
-    else if (which[i] >= ris) { // to be updateed lated 
+    else if (which[i] >= ris && which[i] < lij) { // ris  
       int id = which[i] - ris; 
       dvalue = appris->ris_total[id];
+    }
+    else if (which[i] >= lij) { // ris  
+      int id2 = (which[i] - lij)%10; 
+      int id1 = (which[i] - lij - id2)/10; 
+      dvalue = appris->Lij[id1][id2]; // calcualted in appris->onsager()
     }
 
     if(which[i] >= cFE) nfloater++;

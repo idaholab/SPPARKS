@@ -107,7 +107,7 @@ class AppRis : public AppLattice {
   int *trap_type;
 
 //parameter for Onsager coefficient calculation  
-  int **Lij;
+  double **Lij;
 
   struct Event {           // one event for an owned site
     int style;             // reaction style = HOP,RECOMBINE 
