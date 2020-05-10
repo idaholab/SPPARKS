@@ -750,8 +750,9 @@ double AppRis::site_concentration(int i, int estyle)
 
   if(estyle == 1)  {
      ci = 0.5 - (ci-1)/n1nn;
-     if(ci > 0) return 2*ci;  
-     if(ci <= 0) return 0.0;
+     return 2*ci; // Changing from attraction to repulsion with increasing local concentration
+     //if(ci > 0) return 2*ci;  
+     //if(ci <= 0) return 0.0;
   }
 
   int n2nn = numneigh2[i];  //num of 2NN
@@ -761,8 +762,8 @@ double AppRis::site_concentration(int i, int estyle)
   }
 
   ci = 0.5 - (ci-1)/(n1nn+n2nn);
-  if(ci > 0) return 2*ci;
-  return 0.0;
+  // if(ci > 0) return 2*ci;
+  return 2*ci;
 
 }
 
