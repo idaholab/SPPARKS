@@ -599,6 +599,7 @@ void AppRis::init_app()
   for (i = 0; i < nlocal; i++) recombine(i); 
   // initialize the time_list for ballistic mixing
   if(ballistic_flag) {
+    nFPair = 0;
     for(i = 0; i < nballistic; i ++) {
        time_old[i] = 0;
        time_new[i] = 0;
@@ -701,13 +702,23 @@ double AppRis::sites_energy(int i, int estyle)
 {
   int j,jd,n1nn;
   double eng = 0.0;
+  double ci = 0.0;
+  
+  int ielement = element[i];
+  if(ielement == NI) ci = site_concentration(i,estyle);
 
   if(estyle == 0) return eng; 
   //energy from 1NN bonds
   n1nn = numneigh[i];  //num of 1NN
   for (j = 0; j < n1nn; j++) {
     jd = neighbor[i][j];
-    eng += ebond1[element[i]][element[jd]];
+
+    //adjust A-V bond based on local concentration 
+    if(ielement==NI && jd == VACANCY) {
+       eng += ci*ebond1[ielement][VACANCY];
+       } else {   
+    eng += ebond1[ielement][element[jd]];
+    } 
   }
 
   //energy from 2NN bonds
@@ -715,11 +726,44 @@ double AppRis::sites_energy(int i, int estyle)
     int n2nn = numneigh2[i];
     for (j = 0; j < n2nn; j++) {
       jd = neighbor2[i][j];
-      eng += ebond2[element[i]][element[jd]];
+      eng += ebond2[ielement][element[jd]];
     }
   }
 
   return eng/2.0;
+}
+
+/* ----------------------------------------------------------------------
+  compute local concentration to adjust V-V bond energy  
+------------------------------------------------------------------------- */
+
+double AppRis::site_concentration(int i, int estyle)
+{ 
+  double ci = 0.0;
+ 
+  int n1nn = numneigh[i]; //num of 1NN
+
+  for(int j = 0; j < n1nn; j++) { 
+     int jd = neighbor[i][j];
+     if(element[jd]==VACANCY) ci ++; 
+  }
+
+  if(estyle == 1)  {
+     ci = 0.5 - (ci-1)/n1nn;
+     if(ci > 0) return 2*ci;  
+     if(ci <= 0) return 0.0;
+  }
+
+  int n2nn = numneigh2[i];  //num of 2NN
+  for(int j = 0; j < n2nn; j++) {
+     int jd = neighbor2[i][j];
+     if(element[jd] == VACANCY) ci ++;
+  }
+
+  ci = 0.5 - (ci-1)/(n1nn+n2nn);
+  if(ci > 0) return 2*ci;
+  return 0.0;
+
 }
 
 /* ----------------------------------------------------------------------

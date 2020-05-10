@@ -131,6 +131,7 @@ class AppRis : public AppLattice {
   double add_acceleration_event(int, int); // add acceleration event and return a probability
   double total_energy();
   double sites_energy(int, int);
+  double site_concentration(int, int);  
   double site_SP_energy(int, int, int);
   
   void grow_reactions(); //reactions

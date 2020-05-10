@@ -28,7 +28,7 @@ enum{inter,floater};                              // data type
 enum{FE=0,CU,NI,VACANCY,I1,I2,I3,I4,I5,I6};       // diagnosis terms   
 enum{hFE=11,hCU,hNI,hMN,hSi,hP,hC};               // hop steps for each element
 enum{sink=20};                                    // number of sink absorption   
-enum{recombine=31};                               // number of recombination    
+enum{recombine=31,FPair};                        // number of recombination    
 enum{cFE=40,cCU,cNI,cVACANCY,cI1,cI2,cI3,cI4,cI5,cI6};        // time averaged concentration    
 enum{dFE=51,dCU,dNI,dVACANCY,dI1,dI2,dI3,dI4,dI5,dI6}; // MSD for each element 
 enum{energy=61,treal,fvt};                        // energy and realistic time  
@@ -143,10 +143,11 @@ void DiagRis::init()
     else if (strcmp(list[i],"mc") == 0) which[i] = mC;
     else if (strcmp(list[i],"msia") == 0) which[i] = mSIA;
  
-    else if (strcmp(list[i],"recombine") == 0) which[i] = recombine;
     else if (strcmp(list[i],"treal") == 0) which[i] = treal;
     else if (strcmp(list[i],"fvt") == 0) which[i] = fvt;
 */
+    else if (strcmp(list[i],"recombine") == 0) which[i] = recombine;
+    else if (strcmp(list[i],"nfp") == 0) which[i] = FPair;
     else if (strcmp(list[i],"energy") == 0) which[i] = energy;
     else if (list[i][0] == 's' && list[i][1] == 'i' && list[i][2] == 'n' && list[i][3] == 'k') {
       int id = list[i][4] - '0';
@@ -286,7 +287,6 @@ void DiagRis::compute()
     else if (which[i] == dI5 && sites[I5] > 0) dvalue = msd[I5]/sites[I5]; 
     else if (which[i] == dI6 && sites[I6] > 0) dvalue = msd[I6]/sites[I6]; 
    /*
-    //else if (which[i] == recombine) dvalue = appris->nrecombine; //number of reocmbination 
     else if (which[i] == treal) dvalue = appris->realtime; //realistic time  
     else if (which[i] == fvt) dvalue = appris->fvt; //realistic time  
    */
@@ -296,6 +296,8 @@ void DiagRis::compute()
      // ivalue = appris->nabsorption[id-1];
      ivalue = 0; 
     }
+    else if (which[i] == recombine) ivalue = appris->nrecombine[VACANCY]; //number of reocmbination 
+    else if (which[i] == FPair) ivalue = appris->nFPair; //number of reocmbination 
     else if (which[i] >= ris && which[i] < lij) { // ris  
       int id = which[i] - ris; 
       dvalue = appris->ris_total[id];
