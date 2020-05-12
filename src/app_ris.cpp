@@ -705,7 +705,7 @@ double AppRis::sites_energy(int i, int estyle)
   double ci = 0.0;
   
   int ielement = element[i];
-  if(ielement == NI) ci = site_concentration(i,estyle);
+  //if(ielement == NI) ci = site_concentration(i,estyle);
 
   if(estyle == 0) return eng; 
   //energy from 1NN bonds
@@ -714,10 +714,14 @@ double AppRis::sites_energy(int i, int estyle)
     jd = neighbor[i][j];
 
     //adjust A-V bond based on local concentration 
-    if(ielement==NI && jd == VACANCY) {
-       eng += ci*ebond1[ielement][VACANCY];
-       } else {   
-    eng += ebond1[ielement][element[jd]];
+    if(ielement==NI && element[jd] == VACANCY) {
+       ci = site_concentration(i,estyle);
+       eng += ci*ebond1[NI][VACANCY];
+    } else if(ielement==VACANCY && element[jd] == NI) {
+       ci = site_concentration(jd,estyle);
+       eng += ci*ebond1[NI][VACANCY];
+    } else {   
+       eng += ebond1[ielement][element[jd]];
     } 
   }
 
@@ -726,7 +730,17 @@ double AppRis::sites_energy(int i, int estyle)
     int n2nn = numneigh2[i];
     for (j = 0; j < n2nn; j++) {
       jd = neighbor2[i][j];
-      eng += ebond2[ielement][element[jd]];
+    
+      //adjust A-V bond based on local concentration 
+      if(ielement==NI && element[jd] == VACANCY) {
+         ci = site_concentration(i,estyle);
+         eng += ci*ebond2[NI][VACANCY];
+      } else if(ielement==VACANCY && element[jd] == NI) {
+         ci = site_concentration(jd,estyle);
+         eng += ci*ebond2[NI][VACANCY];
+      } else {   
+         eng += ebond2[ielement][element[jd]];
+      } 
     }
   }
 
@@ -750,9 +764,8 @@ double AppRis::site_concentration(int i, int estyle)
 
   if(estyle == 1)  {
      ci = 0.5 - (ci-1)/n1nn;
+     //if(ci < 0.0) ci = -1.0;
      return 2*ci; // Changing from attraction to repulsion with increasing local concentration
-     //if(ci > 0) return 2*ci;  
-     //if(ci <= 0) return 0.0;
   }
 
   int n2nn = numneigh2[i];  //num of 2NN
@@ -762,7 +775,7 @@ double AppRis::site_concentration(int i, int estyle)
   }
 
   ci = 0.5 - (ci-1)/(n1nn+n2nn);
-  // if(ci > 0) return 2*ci;
+  //if(ci < 0.0) ci = -1.0;
   return 2*ci;
 
 }
