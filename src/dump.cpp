@@ -13,6 +13,7 @@
 
 #include "mpi.h"
 #include "string.h"
+#include "stdio.h"
 #include "stdlib.h"
 #include "dump.h"
 #include "app.h"

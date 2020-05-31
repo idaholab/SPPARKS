@@ -15,6 +15,7 @@
 #include "math.h"
 #include "mpi.h"
 #include "string.h"
+#include "stdio.h"
 #include "stdlib.h"
 #include "read_sites.h"
 #include "app.h"

@@ -11,8 +11,8 @@
    See the README file in the top-level SPPARKS directory.
 ------------------------------------------------------------------------- */
 
-#include "stdlib.h"
 #include "stdio.h"
+#include "stdlib.h"
 #include "cluster.h"
 
 using namespace SPPARKS_NS;

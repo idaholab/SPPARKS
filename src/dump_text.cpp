@@ -14,6 +14,7 @@
 #include "spktype.h"
 #include "mpi.h"
 #include "string.h"
+#include "stdio.h"
 #include "stdlib.h"
 #include "dump_text.h"
 #include "app.h"

@@ -11,6 +11,7 @@
    See the README file in the top-level SPPARKS directory.
 ------------------------------------------------------------------------- */
 
+#include "stdio.h"
 #include "stdlib.h"
 #include "string.h"
 #include "region_block.h"

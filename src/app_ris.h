@@ -99,7 +99,6 @@ class AppRis : public AppLattice {
 //parameter for ris calculation 
   int *ris_type;
   double *ris_total;
-  double iss_sth[10];
   double *ris_ci;
 
 //parameter for acceleration 
@@ -108,6 +107,10 @@ class AppRis : public AppLattice {
 
 //parameter for Onsager coefficient calculation  
   double **Lij;
+
+//parameter for Onsager coefficient calculation 
+  int *total_neighbor; 
+  double **sro;
 
   struct Event {           // one event for an owned site
     int style;             // reaction style = HOP,RECOMBINE 
@@ -177,6 +180,7 @@ class AppRis : public AppLattice {
 
   void ris_time(); // calculate ris 
   void onsager(double); // calculate the Onsager coefficients 
+  void short_range_order(); // calculate the short range order 
 };
 
 }

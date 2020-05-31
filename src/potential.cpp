@@ -12,6 +12,7 @@
 ------------------------------------------------------------------------- */
 
 #include "string.h"
+#include "stdio.h"
 #include "stdlib.h"
 #include "potential.h"
 #include "error.h"

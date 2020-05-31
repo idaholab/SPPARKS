@@ -12,6 +12,7 @@
 ------------------------------------------------------------------------- */
 
 #include "mpi.h"
+#include "stdio.h"
 #include "stdlib.h"
 #include "string.h"
 #include "diag_ris.h"
@@ -28,12 +29,13 @@ enum{inter,floater};                              // data type
 enum{FE=0,CU,NI,VACANCY,I1,I2,I3,I4,I5,I6};       // diagnosis terms   
 enum{hFE=11,hCU,hNI,hMN,hSi,hP,hC};               // hop steps for each element
 enum{sink=20};                                    // number of sink absorption   
-enum{recombine=31,FPair};                        // number of recombination    
+enum{recombine=31,FPair,vabsorb,iabsorb};         // number of recombination    
 enum{cFE=40,cCU,cNI,cVACANCY,cI1,cI2,cI3,cI4,cI5,cI6};        // time averaged concentration    
 enum{dFE=51,dCU,dNI,dVACANCY,dI1,dI2,dI3,dI4,dI5,dI6}; // MSD for each element 
 enum{energy=61,treal,fvt};                        // energy and realistic time  
 enum{ris=70};                                     // number of ris   
 enum{lij=80};                                     // onsager coefficient   
+enum{sro=180};                                     // short range order   
 /* ---------------------------------------------------------------------- */
 
 DiagRis::DiagRis(SPPARKS *spk, int narg, char **arg) : Diag(spk,narg,arg)
@@ -146,8 +148,10 @@ void DiagRis::init()
     else if (strcmp(list[i],"treal") == 0) which[i] = treal;
     else if (strcmp(list[i],"fvt") == 0) which[i] = fvt;
 */
-    else if (strcmp(list[i],"recombine") == 0) which[i] = recombine;
     else if (strcmp(list[i],"nfp") == 0) which[i] = FPair;
+    else if (strcmp(list[i],"recombine") == 0) which[i] = recombine;
+    else if (strcmp(list[i],"vabsorb") == 0) which[i] = vabsorb;
+    else if (strcmp(list[i],"iabsorb") == 0) which[i] = iabsorb;
     else if (strcmp(list[i],"energy") == 0) which[i] = energy;
     else if (list[i][0] == 's' && list[i][1] == 'i' && list[i][2] == 'n' && list[i][3] == 'k') {
       int id = list[i][4] - '0';
@@ -165,6 +169,13 @@ void DiagRis::init()
       int id1 = list[i][3] - '0';
       int id2 = list[i][4] - '0';
       which[i] = lij + id1*10 + id2;
+    }
+
+    // short range order   
+    else if (list[i][0] == 's' && list[i][1] == 'r' && list[i][2] == 'o') {
+      int id1 = list[i][3] - '0';
+      int id2 = list[i][4] - '0';
+      which[i] = sro + id1*10 + id2;
     }
 
     else error->all(FLERR,"Invalid value setting in diag_style ris");
@@ -296,16 +307,38 @@ void DiagRis::compute()
      // ivalue = appris->nabsorption[id-1];
      ivalue = 0; 
     }
-    else if (which[i] == recombine) ivalue = appris->nrecombine[VACANCY]; //number of reocmbination 
     else if (which[i] == FPair) ivalue = appris->nFPair; //number of reocmbination 
+    else if (which[i] == recombine) ivalue = appris->nrecombine[VACANCY]; //number of reocmbination
+    else if (which[i] == vabsorb) {
+      int nabsorb = 0;
+      int nsink = appris->nsink;
+      for(int i = 1; i < nsink+1; i++) { // sink id starts from 1 
+         nabsorb += appris->nabsorption[VACANCY][i];
+      }
+      ivalue = nabsorb;
+    } 
+    else if (which[i] == iabsorb) {
+      int nabsorb = 0;
+      int nsink = appris->nsink;
+      for(int i = 1; i < nsink+1; i++) {
+         nabsorb += appris->nabsorption[I1][i] + appris->nabsorption[I2][i] + appris->nabsorption[I4][i] + appris->nabsorption[I4][i] + appris->nabsorption[I5][i] + appris->nabsorption[I6][i];
+      }
+      ivalue = nabsorb;
+    } 
     else if (which[i] >= ris && which[i] < lij) { // ris  
       int id = which[i] - ris; 
       dvalue = appris->ris_total[id];
     }
-    else if (which[i] >= lij) { // ris  
+    else if (which[i] >= lij && which[i] < sro) { // onsager  
       int id2 = (which[i] - lij)%10; 
-      int id1 = (which[i] - lij - id2)/10; 
+      int id1 = (which[i] - lij - id2)/10;
       dvalue = appris->Lij[id1][id2]; // calcualted in appris->onsager()
+    }
+    else if (which[i] >= sro) { // short range order   
+      int id2 = (which[i] - sro)%10; 
+      int id1 = (which[i] - sro - id2)/10; 
+      appris->short_range_order(); // compute short range order 
+      dvalue = appris->sro[id1][id2];  
     }
 
     if(which[i] >= cFE) nfloater++;

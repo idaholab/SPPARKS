@@ -117,6 +117,9 @@ AppRis::AppRis(SPPARKS *spk, int narg, char **arg) :
   ris_type = NULL;
   ris_ci = ris_total = NULL;
 
+  // short range order 
+  total_neighbor = NULL;
+  sro = NULL;
 }
 
 /* ---------------------------------------------------------------------- */
@@ -208,6 +211,8 @@ void AppRis::input_app(char *command, int narg, char **arg)
     nelement = atoi(arg[0]);   // num of elements
 
     memory->create(nsites_local,nelement,"app/ris:nsites_local");
+    memory->create(total_neighbor,nelement,"app/ris:total_neighbor"); //total number of neighbors of all type i atoms 
+    memory->create(sro,nelement,nelement,"app/ris:sro"); //short range order matrix
     memory->create(ci,nelement,"app/ris:ci"); //static concentration based on current configuration 
     memory->create(ct,nelement,"app/ris:ct"); //time averaged concentration 
     memory->create(ct_new,nelement,"app/ris:ct_new"); //time averaged concentration 
@@ -655,6 +660,14 @@ if(concentrationflag) {
     treal_me = takmc_me = 0.0;
     dt_real = dt_akmc = 0.0;
   }*/
+
+  // initialization for short range order
+  for(i=0; i<nelement; i++) {
+     total_neighbor[i] = 0;
+     for(j=0; j<nelement; j++) {
+        sro[i][j] = 0.0;
+     }
+  } 
 }
 
 /* ---------------------------------------------------------------------- */
@@ -1626,6 +1639,46 @@ void AppRis::onsager(double t)
   }
 
   return;
+}
+
+/* ----------------------------------------------------------------------
+  calculate the short range order matrix  
+------------------------------------------------------------------------- */
+void AppRis::short_range_order()
+{ int i,j,jd,itype,jtype;
+
+  // initialization 
+  for(i=0; i<nelement; i++) {
+     total_neighbor[i] = 0;
+     for(j=0; j<nelement; j++) {
+        sro[i][j] = 0.0;
+     }
+  } 
+
+  for(i=0; i<nlocal; i++) {
+     itype = element[i];
+     for(j=0; j<numneigh[i]; j++) {
+	jtype=element[neighbor[i][j]];
+        total_neighbor[itype] ++;
+	sro[itype][jtype] += 1;
+     }
+  } 
+
+  for(i=0; i<nelement; i++) {
+     for(j=i; j<nelement; j++) {
+        double jconcentration = 1.0*nsites_local[j]/nlocal;
+	//fprintf(screen, "%d %d %d %f %f,\n",i,j,total_neighbor[i],sro[i][j],jconcentration);
+	if(jconcentration == 0.0) { // there is no j element 
+	  sro[i][j] = 1.0;
+	} else {
+          sro[i][j] /= total_neighbor[i];
+  	  sro[i][j] /= jconcentration;
+          sro[i][j] = 1.0 - sro[i][j];
+	}
+     }
+  } 
+
+  return; 
 }
 
 /* ----------------------------------------------------------------------
