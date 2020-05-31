@@ -1665,7 +1665,7 @@ void AppRis::short_range_order()
   } 
 
   for(i=0; i<nelement; i++) {
-     for(j=i; j<nelement; j++) {
+     for(j=0; j<nelement; j++) {
         double jconcentration = 1.0*nsites_local[j]/nlocal;
 	//fprintf(screen, "%d %d %d %f %f,\n",i,j,total_neighbor[i],sro[i][j],jconcentration);
 	if(jconcentration == 0.0) { // there is no j element 
