@@ -458,8 +458,13 @@ void AppRis::input_app(char *command, int narg, char **arg)
     ballistic_flag = 1;
     grow_ballistic();
 
-    double dose_rate=atof(arg[0]);// dose rate 
-    bfreq[nballistic] = 1e12/nlocal/dose_rate; // time interval to introduce an FP 
+    double dose_rate = atof(arg[0]);// dose rate
+    bdistance = 0.0;  
+    if(narg > 1) bdistance = atof(arg[1]);// Frenkel pair separation
+
+    bfreq[nballistic] = 1e12/nlocal/dose_rate; // time interval to introduce an FP
+    bdistance = bdistance*bdistance; // second order
+    fprintf(screen, "%f \n", bdistance); 
     if(min_bfreq > bfreq[nballistic]) min_bfreq = bfreq[nballistic];
     nballistic ++; // number of mixing events
   }
@@ -848,6 +853,55 @@ double AppRis::site_SP_energy(int i, int j, int estyle)
 }
 
 /* ----------------------------------------------------------------------
+  compute barriers for an exchange event between i & j, with i being an SIA 
+------------------------------------------------------------------------- */
+
+double AppRis::sia_SP_energy(int i, int j, int m, int n, int estyle)
+{
+  double eng = 0.0;
+  double eng0i, eng0j, eng1i, eng1j; //energy before and after jump
+  int iele = element[i];
+  int jele = element[j];
+
+  eng0i = sites_energy(i,estyle); //total bonds with i initially,
+  eng0j = sites_energy(j,estyle); //total bonds with j initially
+
+  // switch the element and recalculate the site energy
+  // m & n are the two elements in the dumbbell at i; m remains at i, and n is added to j  
+  element[i] = m; 
+
+  if(n == FE && jele == FE) {element[j] = I1;}  
+  if(n == FE && jele == CU) {element[j] = I2;}  
+  if(n == CU && jele == FE) {element[j] = I2;}  
+  if(n == FE && jele == NI) {element[j] = I3;}  
+  if(n == NI && jele == FE) {element[j] = I3;}  
+  if(n == CU && jele == CU) {element[j] = I4;}  
+  if(n == CU && jele == NI) {element[j] = I5;}  
+  if(n == NI && jele == CU) {element[j] = I5;}  
+  if(n == NI && jele == NI) {element[j] = I6;}  
+  
+  eng1i = sites_energy(i,estyle); //total bonds with i after switch
+  eng1j = sites_energy(j,estyle); //total bonds with j after switch 
+
+  // switch back 
+  element[j] = jele; 
+  element[i] = iele; 
+
+  //for SIA the diffusion is given by itself 
+  if(element[i] > VACANCY) eng = mbarrier[iele] + eng1i + eng1j - eng0i -eng0j;
+
+  //Contribution from segregation energy difference before and after switch; defects one step away from sink will automatically jump to sink  
+  if(eisink_flag && (isink[i] > 0 || isink[j] > 0)) 
+    eng += (eisink[iele][isink[j]] + eisink[jele][isink[i]] - eisink[iele][isink[i]] - eisink[jele][isink[j]])/2.0;  
+
+  //add elastic contribution if applicable
+  if(elastic_flag) 
+    eng += (elastic_energy(j,iele) - elastic_energy(i,iele) + elastic_energy(i,jele) - elastic_energy(j,jele))/2.0;
+
+  return eng;
+}
+
+/* ----------------------------------------------------------------------
    KMC method
    compute total propensity of owned site summed over possible events
 ------------------------------------------------------------------------- */
@@ -884,15 +938,47 @@ double AppRis::site_propensity(int i)
   if (element[i] < VACANCY) return prob_reaction;
 
   // for hopping event propensity, the barrier is calculated by site_SP_energy();
-  for (j = 0; j < numneigh[i]; j++) {
-    jid = neighbor[i][j];
-    if(element[jid] >= VACANCY) continue; // no SIA-SIA exchange;
-    ebarrier = site_SP_energy(i,jid,engstyle); // diffusion barrier
-    hpropensity = exp(-ebarrier/KBT);
-    add_event(i,jid,1,-1,hpropensity);
-    prob_hop += hpropensity;
-  }
+  if (element[i] == VACANCY) { // vacancy hopping 
+    for (j = 0; j < numneigh[i]; j++) {
+      jid = neighbor[i][j];
+      if(element[jid] >= VACANCY) continue; // no vacancy-SIA exchange;
+      ebarrier = site_SP_energy(i,jid,engstyle); // diffusion barrier
+      hpropensity = exp(-ebarrier/KBT);
+      add_event(i,jid,1,-1,hpropensity);
+      prob_hop += hpropensity;
+    }
+  } else if (element[i] > VACANCY) {// SIA hopping 
+    for (j = 0; j < numneigh[i]; j++) {
+      jid = neighbor[i][j];
+      int ei = element[jid]; 
+      if(ei >= VACANCY) continue; // no SIA-SIA exchange;
 
+      int enew[2];
+      if(ei == I1) {enew[0] = FE; enew[1] = FE;}      
+      if(ei == I2) {enew[0] = FE; enew[1] = CU;}      
+      if(ei == I3) {enew[0] = FE; enew[1] = NI;}      
+      if(ei == I4) {enew[0] = CU; enew[1] = CU;}      
+      if(ei == I5) {enew[0] = CU; enew[1] = NI;}      
+      if(ei == I6) {enew[0] = NI; enew[1] = NI;}      
+
+      //two events are added here, each taking one element from the dumbell, 
+      //and add it to jid to form a new dumbbell 
+      //This assumes that the SIA is free to rotate and it may induce artificial diffsuion if not the case. 
+      //Will be changed later 
+
+      ebarrier = sia_SP_energy(i,jid,enew[0],enew[1],engstyle); // enew[0] stays at i
+      //fprintf(screen,"1, %d %f \n",element[i],ebarrier);
+      hpropensity = exp(-ebarrier/KBT);
+      add_event(i,jid,1,0,hpropensity);
+      prob_hop += hpropensity;
+
+      ebarrier = sia_SP_energy(i,jid,enew[1],enew[0],engstyle); // enew[1] stays at i
+      //fprintf(screen,"2, %d %f \n",element[i],ebarrier);
+      hpropensity = exp(-ebarrier/KBT);
+      add_event(i,jid,1,1,hpropensity);
+      prob_hop += hpropensity;
+    }
+  }
   return prob_hop + prob_reaction;
 }
 
@@ -939,7 +1025,7 @@ void AppRis::site_event(int i, class RandomPark *random)
         element[i] = element[j];
         element[j] = k;
       } else { //SIA switch 
-        SIA_switch(i,j);  
+        SIA_switch(i,j,which);  
       }
     }
 
@@ -1167,7 +1253,7 @@ void AppRis::clear_events(int i)
    Perform SIA switch with an element 
 ------------------------------------------------------------------------- */
 
-void AppRis::SIA_switch(int i, int j)
+void AppRis::SIA_switch(int i, int j, int m)
 {
   int ei = element[i];
   int ej = element[j];
@@ -1178,7 +1264,6 @@ void AppRis::SIA_switch(int i, int j)
   if( ej > VACANCY ) error->all(FLERR, "No matrix element for the required switch!");
 
   int ei1, ei2, enew[3];
-  enew[0] = ej;
   if(ei == I1) {enew[1] = FE; enew[2] = FE;}      
   if(ei == I2) {enew[1] = FE; enew[2] = CU;}      
   if(ei == I3) {enew[1] = FE; enew[2] = NI;}      
@@ -1186,32 +1271,28 @@ void AppRis::SIA_switch(int i, int j)
   if(ei == I5) {enew[1] = CU; enew[2] = NI;}      
   if(ei == I6) {enew[1] = NI; enew[2] = NI;}      
   
-  //randomly choose two elements to be in the SIA on site j and the other one on site i
-  int eid = static_cast<int>(ranris->uniform()*3);
-  element[i] = enew[eid];
+  //enew[m] stays at site i, and the other is added to site j to form a new dumbbell
+  enew[0] = enew[2-m];
+  element[i] = enew[m+1];
   nsites_local[element[i]] ++;
 
-  int ejd1 = eid - 1;
-  int ejd2 = eid + 1;
-  if(ejd1 < 0) ejd1 += 3;
-  if(ejd2 > 2) ejd2 -= 3;
-  
-  if(enew[ejd1] == FE && enew[ejd2] == FE) {element[j] = I1; nsites_local[I1] ++;}  
-  if(enew[ejd1] == FE && enew[ejd2] == CU) {element[j] = I2; nsites_local[I2] ++;}  
-  if(enew[ejd1] == CU && enew[ejd2] == FE) {element[j] = I2; nsites_local[I2] ++;}  
-  if(enew[ejd1] == FE && enew[ejd2] == NI) {element[j] = I3; nsites_local[I3] ++;} 
-  if(enew[ejd1] == NI && enew[ejd2] == FE) {element[j] = I3; nsites_local[I3] ++;} 
-  if(enew[ejd1] == CU && enew[ejd2] == CU) {element[j] = I4; nsites_local[I4] ++;} 
-  if(enew[ejd1] == CU && enew[ejd2] == NI) {element[j] = I5; nsites_local[I5] ++;} 
-  if(enew[ejd1] == NI && enew[ejd2] == CU) {element[j] = I5; nsites_local[I5] ++;} 
-  if(enew[ejd1] == NI && enew[ejd2] == NI) {element[j] = I6; nsites_local[I6] ++;} 
+  if(enew[0] == FE && ej == FE) {element[j] = I1;}  
+  if(enew[0] == FE && ej == CU) {element[j] = I2;}  
+  if(enew[0] == CU && ej == FE) {element[j] = I2;}  
+  if(enew[0] == FE && ej == NI) {element[j] = I3;} 
+  if(enew[0] == NI && ej == FE) {element[j] = I3;} 
+  if(enew[0] == CU && ej == CU) {element[j] = I4;} 
+  if(enew[0] == CU && ej == NI) {element[j] = I5;} 
+  if(enew[0] == NI && ej == CU) {element[j] = I5;} 
+  if(enew[0] == NI && ej == NI) {element[j] = I6;} 
+  nsites_local[element[j]] ++;
   
   return;
 }
 
 /* ----------------------------------------------------------------------
   add an acceleration event to list for site I
-  return a propensity
+  return a propensity, Not used here (to be develeted or updated) 
 ------------------------------------------------------------------------- */
 
 double AppRis::add_acceleration_event(int i, int j)
@@ -1355,6 +1436,8 @@ void AppRis::check_ballistic(double t)
 
 void AppRis::ballistic(int n)
 { 
+  int vid,iid;
+
   // creat an vacancy
   int allsites = nsites_local[FE] + nsites_local[CU] + nsites_local[NI]; 
   if(allsites == 0) error->all(FLERR, "No matrix sites available for FP generation!");
@@ -1372,6 +1455,7 @@ void AppRis::ballistic(int n)
       
       // recalculate the propensity if defects are generated 
       update_propensity(id);
+      vid = id;
       findv = 0;
     }
   }
@@ -1381,22 +1465,34 @@ void AppRis::ballistic(int n)
   int findi = 1; 
   while (findi) { 
     int id = static_cast<int> (nlocal*ranris->uniform());
+
     if(id < nlocal && element[id] < VACANCY) {
+      if(bdistance = 0.0) { 
+	findi = 0;
+      } else {
+        double dij = distanceIJ(vid,id);
+        if(dij <= bdistance) { 
+	  findi = 0;
+	  iid = id;
+	}
+      }
+    }    
+
+    if(findi == 0 ) {
       nsites_local[element[id]] --; // site element number -1 
       //element[id] = I1;
-      if(velement == FE && element[id] == FE) element[id] = I1; // FeFe interstitial  
-      if(velement == FE && element[id] == CU) element[id] = I2; // FeCu interstitial  
-      if(velement == FE && element[id] == NI) element[id] = I3; // FeNi interstitial  
-      if(velement == CU && element[id] == FE) element[id] = I2; // FeCu interstitial  
-      if(velement == CU && element[id] == CU) element[id] = I4; // CuCu interstitial  
-      if(velement == CU && element[id] == NI) element[id] = I5; // CuNi interstitial  
-      if(velement == NI && element[id] == FE) element[id] = I3; // FeNi interstitial  
-      if(velement == NI && element[id] == CU) element[id] = I5; // CuNi interstitial  
-      if(velement == NI && element[id] == NI) element[id] = I6; // NiNi interstitial  
+      if(velement == FE && element[iid] == FE) element[iid] = I1; // FeFe interstitial  
+      if(velement == FE && element[iid] == CU) element[iid] = I2; // FeCu interstitial  
+      if(velement == FE && element[iid] == NI) element[iid] = I3; // FeNi interstitial  
+      if(velement == CU && element[iid] == FE) element[iid] = I2; // FeCu interstitial  
+      if(velement == CU && element[iid] == CU) element[iid] = I4; // CuCu interstitial  
+      if(velement == CU && element[iid] == NI) element[iid] = I5; // CuNi interstitial  
+      if(velement == NI && element[iid] == FE) element[iid] = I3; // FeNi interstitial  
+      if(velement == NI && element[iid] == CU) element[iid] = I5; // CuNi interstitial  
+      if(velement == NI && element[iid] == NI) element[iid] = I6; // NiNi interstitial  
      
-      nsites_local[element[id]] ++;
-      update_propensity(id);
-      findi = 0;
+      nsites_local[element[iid]] ++;
+      update_propensity(iid);
     }
   }
 
@@ -3006,4 +3102,31 @@ void AppRis::trapozidal(double omegas[100], double XP[9][100], int j, int k, dou
     dy = XP[3*j+k][ii] + XP[3*j+k][i];
     value += dy*domega/2.0;
   }
+}
+
+/* ----------------------------------------------------------------------
+   calculate the distance between i and j in vector form. 
+------------------------------------------------------------------------- */
+double AppRis::distanceIJ(int i, int j)
+{
+   //update and switch displacement
+   int periodicity[3];
+   double lprd[3],dij[4];
+
+   periodicity[0] = domain->xperiodic;
+   periodicity[1] = domain->yperiodic;
+   periodicity[2] = domain->zperiodic;
+   lprd[0] = domain->xprd;
+   lprd[1] = domain->yprd;
+   lprd[2] = domain->zprd;
+
+   dij[3] = 0.0; 
+   for (int k = 0; k < 3; k++) { //update
+       dij[k] = xyz[j][k] - xyz[i][k];
+       if (periodicity[k] && dij[k] >= lprd[k]/2.0) dij[k] -= lprd[k];
+       if (periodicity[k] && dij[k] <= -lprd[k]/2.0) dij[k] += lprd[k];
+       dij[3] += dij[k];
+   } 
+
+   return dij[3];
 }

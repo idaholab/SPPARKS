@@ -92,6 +92,7 @@ class AppRis : public AppLattice {
   int nballistic, nFPair;
   int *time_old,*time_new;
   double *bfreq;
+  double bdistance;
 
 //parameter for time averaged concentration  
   double *ct,*ct_new,dt_new;
@@ -136,6 +137,7 @@ class AppRis : public AppLattice {
   double sites_energy(int, int);
   double site_concentration(int, int);  
   double site_SP_energy(int, int, int);
+  double sia_SP_energy(int, int, int, int,int);
   
   void grow_reactions(); //reactions
   void check_reaction(); 
@@ -164,6 +166,7 @@ class AppRis : public AppLattice {
   void sigma_P(double [], double [], double [], double [][3]); 
   void seg_stress(double [], double [], double [], double [], double [][3]); 
   double elastic_energy(int,int);
+  double distanceIJ(int,int); //distance between site I&J
 
   void grow_sinks(); //sink
   void sink_creation(int);
@@ -173,7 +176,7 @@ class AppRis : public AppLattice {
   int recombine(int); // recombination 
   int vacancy_trap(int); 
   void time_tracer(double); //time tracer     
-  void SIA_switch(int,int); //SIA_switch    
+  void SIA_switch(int,int,int); //SIA_switch    
   void concentration_field(double); //calculation concentration field    
   void time_averaged_concentration(); // calculate time-averaged concentration 
   double real_time(double); //compute fvt   
