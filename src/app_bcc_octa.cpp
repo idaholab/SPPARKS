@@ -34,6 +34,7 @@ enum{ZERO,FE,VACANCY,SB,HE,VO,I1,I2,I3,I4,I5,I6};       // same as DiagBCCOCTA; 
 
 #define DELTAEVENT 100000
 #define MAX2NN 18  // max 2NN of BCC lattice
+#define BIGNUMBER 1e18 // define a big number 
 
 /* ---------------------------------------------------------------------- */
 
@@ -103,6 +104,7 @@ AppBccOcta::AppBccOcta(SPPARKS *spk, int narg, char **arg) :
   // arrays for ballistic mixing
   bfreq = NULL; 
   time_old = time_new = NULL;
+  min_bfreq = BIGNUMBER;
 
   // 2NN neighbor information
   ibox = NULL;
@@ -305,6 +307,7 @@ void AppBccOcta::input_app(char *command, int narg, char **arg)
 
     double dose_rate=atof(arg[0]);// dose rate 
     bfreq[nballistic] = 1e12/nlocal/dose_rate; // time interval to introduce an FP 
+    if(min_bfreq > bfreq[nballistic]) min_bfreq = bfreq[nballistic];
     gas_rate = atof(arg[1]); // gas/V ratio 
     nballistic ++; // number of mixing events
   }
@@ -1396,6 +1399,7 @@ void AppBccOcta::check_ballistic(double t)
        if(nmix == 0) time_old[i] = time_new[i];  //update time
     }
   }
+  return;
 }
 
 /* ----------------------------------------------------------------------

@@ -464,7 +464,6 @@ void AppRis::input_app(char *command, int narg, char **arg)
 
     bfreq[nballistic] = 1e12/nlocal/dose_rate; // time interval to introduce an FP
     bdistance = bdistance*bdistance; // second order
-    fprintf(screen, "%f \n", bdistance); 
     if(min_bfreq > bfreq[nballistic]) min_bfreq = bfreq[nballistic];
     nballistic ++; // number of mixing events
   }
