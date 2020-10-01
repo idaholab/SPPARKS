@@ -61,6 +61,7 @@ AppErad::AppErad(SPPARKS *spk, int narg, char **arg) :
   if (narg >= 4) concentrationflag = atoi(arg[3]);
   if (narg >= 5) rrecombine = atoi(arg[4]);
   if (rrecombine == 4) { 
+     if (narg < 6) error->all(FLERR,"Recombination radius is required but not supplied");
      rrec = atof(arg[5]);
      if(narg >= 7) cflag = atoi(arg[6]);
   } else if (narg >= 6) cflag = atoi(arg[5]);
@@ -143,9 +144,9 @@ AppErad::~AppErad()
 
   if (engstyle == 2) {// memory use for 2NNs
     memory->destroy(numneigh2);
-    if(rhop == 3 || rrecombine ==3) memory->destroy(numneigh3);
     memory->destroy(neighbor2);
-    if(rhop == 3 || rrecombine ==3) memory->destroy(neighbor3);
+    if(rhop == 3 || rrecombine == 3) memory->destroy(numneigh3);
+    if(rhop == 3 || rrecombine == 3) memory->destroy(neighbor3);
   }
 
   if (rrecombine == 4) {

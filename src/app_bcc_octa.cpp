@@ -57,8 +57,9 @@ AppBccOcta::AppBccOcta(SPPARKS *spk, int narg, char **arg) :
   if (narg >= 3) rhop = atoi(arg[2]);
   if (narg >= 4) rrecombine = atoi(arg[3]);
   if (rrecombine == 4) { 
+     if (narg < 5) error->all(FLERR,"Recombination radius is required but not supplied");
      rrec = atof(arg[4]);
-     if(narg >= 6) cflag = atoi(arg[5]);
+     if (narg >= 6) cflag = atoi(arg[5]);
   } else if (narg >= 5) cflag = atoi(arg[4]);
   if (engstyle == 2) delpropensity += 1;// increase delpropensity for 2NN interaction
   if (rhop == 3) delpropensity +=1; 
@@ -137,9 +138,9 @@ AppBccOcta::~AppBccOcta()
 
   if (engstyle == 2) {// memory use for 2NNs
     memory->destroy(numneigh2);
-    if(rhop == 3 || rrecombine ==3) memory->destroy(numneigh3);
     memory->destroy(neighbor2);
-    if(rhop == 3 || rrecombine ==3) memory->destroy(neighbor3);
+    if(rhop == 3 || rrecombine == 3) memory->destroy(numneigh3);
+    if(rhop == 3 || rrecombine == 3) memory->destroy(neighbor3);
   }
 
   if (rrecombine == 4) {
@@ -375,7 +376,6 @@ void AppBccOcta::grow_app()
   element = iarray[1];  // element type; i2 in input
   for (int i = 0; i < nlocal; i++) {
       if(numneigh[i] == 32) type[i] = BCC;
-      //if(numneigh[i] == 6) type[i] = OCTA;
       if(numneigh[i] == 18) type[i] = OCTA; // include 2NN OCTA and BCC 
   } 
 }
@@ -414,6 +414,7 @@ void AppBccOcta::init_app()
   for (i = 0; i < nlocal; i++) {
     if (type[i] < BCC || type[i] > OCTA) flag = 1;
     if (element[i] < FE || element[i] > I6) flag = 1;
+    if (element[i] == FE && type[i] == OCTA) error->all(FLERR,"site value incorrect");
     nsites_local[element[i]-1]++;
   }
 
@@ -714,9 +715,10 @@ double AppBccOcta::site_SP_energy(int i, int j, int estyle)
  
   //SIA diffusion on bcc lattice only  
   if(iele >= I1) {
-    if(type[j] == OCTA || jele >= I1) return -1.0;
+    if(type[j] == OCTA) return -1.0; // SIA does not move to octahedral sublattice 
+    if(jele >= I1) return -1.0; // No SIA-SIA exchange 
     double ran1 = ranbccocta->uniform();
-    if(dmigration < 3 && ran1 < dratio) {
+    if(dmigration < 3 && ran1 < dratio) { // ratio of 1D/3D diffusion
       double dij[4];
       dij[0] = dij[1] = dij[2] = 0.0;
       distanceIJ(i,j,dij);
@@ -725,13 +727,13 @@ double AppBccOcta::site_SP_energy(int i, int j, int estyle)
       if (dmigration == 1 && prdt*prdt/dij[3]/Vmig[iele][3] < 0.99) return -1.0; // 1D diffusion
       if (dmigration == 2 && prdt*prdt/dij[3]/Vmig[iele][3] > 0.01) return -1.0; // 2D diffusion
     }
-
     return mbarrier[iele];
   } 
 
   //vacancy and SB diffusion on bcc lattice only 
   if(iele == VACANCY || iele == SB) { 
-    if(type[j] == OCTA) return -1.0; // no going back to interstitial currently 
+    if(type[j] == OCTA) return -1.0; // no SB dissociation currently (except when a recombination occurs), to be improved later  
+    if(iele == SB and jele == VACANCY) return -1.0; // avoid double counting of SB and vacancy exchange    
 
     // Chenge in bonding energy due to vavancy move  
     eng0i = sites_energy(i,estyle); //broken bond with i initially,
@@ -753,20 +755,20 @@ double AppBccOcta::site_SP_energy(int i, int j, int estyle)
   } 
 
   //He diffuses on both lattices 
-  if(iele== HE) {
+  if(iele == HE) {
     // switch with an VO 
     eng0i = sites_energy(i,estyle); //broken bond with i initially,
     eng0j = sites_energy(j,estyle); //broken bond with j initially
 
-    if(jele == VO) {
-      // switch the element and recalculate the site energy 
+    if(jele == VO) {// He move on the octahedral sublattice  
       element[i] = jele;
       element[j] = iele;
-    } else if (jele == VACANCY) {
-      // He going to a vacancy creates a VO and an SB  
+    } else if (jele == VACANCY) {// He going to a vacancy creates a VO and an SB  
       element[i] = VO;
       element[j] = SB; 
-    } 
+    } else {// No other He moves allowed 
+      return -1.0;
+    }
  
     eng1i = sites_energy(i,estyle); //broken bond with i initially,
     eng1j = sites_energy(j,estyle); //broken bond with j initially
@@ -849,7 +851,7 @@ double AppBccOcta::site_propensity(int i)
 
   if (rhop < 3) return prob_hop + prob_reaction;
 
-  // 3NN hop for <110> 1D SIA diffusion in bcc 
+  // 3NN hop for <110> 1D SIA diffusion in bcc, not used here, to be updated later  
   for (j = 0; j < numneigh3[i]; j++) {
       jid = neighbor3[i][j];
       ebarrier = site_SP_energy(i,jid,engstyle); // diffusion barrier
@@ -894,11 +896,11 @@ void AppBccOcta::site_event(int i, class RandomPark *random)
   // switch element between site i and jpartner for hop diffusion
   if(rstyle == 1) { 
     k = element[i];
-    hcount[i] ++;
-
     jd = element[j];
 
     if(k == HE && jd == VACANCY) {// He becomes substitution 
+      hcount[i] = 0; // reset due to the reaction of He + V = SB 
+      hcount[j] = 0;
       element[i] = VO;
       element[j] = SB; 
       nsites_local[VO-1] ++;  
@@ -907,6 +909,7 @@ void AppBccOcta::site_event(int i, class RandomPark *random)
       nsites_local[HE-1] --;  
       nsites_local[VACANCY-1] --;  
     } else {
+      hcount[i] ++; // will be switch for i & j later
       element[i] = element[j];
       element[j] = k;
     }
@@ -925,7 +928,7 @@ void AppBccOcta::site_event(int i, class RandomPark *random)
       for(int nn = 0; nn < numneigh[j]; nn ++) {
          if(element[neighbor[j][nn]] == HE) iHe[j] ++;
       }
-    } else {iHe[j] = 0;}
+    } else {iHe[j] = 0;} 
  
     /*// switch global atomic id for recombination vector analysis, test only 
     k = aid[i];
@@ -945,7 +948,7 @@ void AppBccOcta::site_event(int i, class RandomPark *random)
     xyz0[j][2] = zi;
     // end test */
 
-    if(mfpflag && mfp[element[j]] > 0.0) {
+    if(mfpflag && mfp[element[j]] > 0.0) { // This mean-field absorption works only for vacancy and SIA 
       k = hcount[i]; 
       hcount[i] = hcount[j]; 
       hcount[j] = k; 
@@ -1015,6 +1018,14 @@ void AppBccOcta::site_event(int i, class RandomPark *random)
       }
     }
   }
+
+  // check site validity in case of errors  
+    //if (element[i] == FE && type[i] == OCTA) fprintf(screen,"%d %d %d %d \n", i,j,which,rstyle);
+    //if (element[j] == FE && type[j] == OCTA) fprintf(screen,"%d %d %d %d \n", i,j,which,rstyle);
+    //if (element[i] != HE && element[i] != VO && type[i] == OCTA) error->all(FLERR,"site i value invalid");
+    //if ((element[i] == HE || element[i] == VO) && type[i] == BCC) error->all(FLERR,"site i value invalid");
+    //if (element[j] != HE && element[j] != VO && type[j] == OCTA) error->all(FLERR,"site j value invalid");
+    //if ((element[j] == HE || element[j] == VO) && type[j] == BCC) error->all(FLERR,"site j value invalid");
 }
 
 /* ----------------------------------------------------------------------
@@ -1132,7 +1143,7 @@ int AppBccOcta::recombine(int i)
     for(int n = 0; n < numneigh4[i]; n++) {
        int m = neighbor4[i][n];
 
-       if(type[m] != BCC || iHe[m] > 2) continue;
+       if(type[m] == OCTA || iHe[m] > 2) continue;
        if(element[i] != VACANCY && element[m] != VACANCY && element[i] != SB && element[m] != SB) continue; // None vacancy or substititute 
        if(element[i] < I1 && element[m] < I1) continue; // None SIA 
  
@@ -1144,6 +1155,7 @@ int AppBccOcta::recombine(int i)
        int m = neighbor[i][n];
 
        if(type[m] != BCC || iHe[m] > 2) continue;
+       //if(element[i] != VACANCY && element[m] != VACANCY) continue; // None vacancy 
        if(element[i] != VACANCY && element[m] != VACANCY && element[i] != SB && element[m] != SB) continue; // None vacancy 
        if(element[i] < I1 && element[m] < I1) continue; // None SIA 
    
@@ -1162,6 +1174,17 @@ int AppBccOcta::recombine(int i)
          jd = m; 
          if(jd >= 0) break;
       }
+    } 
+  } else {
+    for(int n = 0; n < numneigh[i]; n++) {
+       int m = neighbor[i][n];
+
+       if(type[m] != BCC || iHe[m] > 2) continue;
+       if(element[i] != VACANCY && element[m] != VACANCY && element[i] != SB && element[m] != SB) continue; // None vacancy 
+       if(element[i] < I1 && element[m] < I1) continue; // None SIA 
+   
+       jd = m; 
+       if(jd >= 0) break;
     } 
   }
   
