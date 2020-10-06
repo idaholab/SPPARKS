@@ -886,8 +886,8 @@ double AppRis::sia_SP_energy(int i, int j, int m, int n, int estyle)
   element[j] = jele; 
   element[i] = iele; 
 
-  //for SIA the diffusion is given by itself 
-  if(element[i] > VACANCY) eng = mbarrier[iele] + eng1i + eng1j - eng0i -eng0j;
+  //for SIA the diffusion is given by itself
+  eng = mbarrier[iele] + eng1i + eng1j - eng0i -eng0j;
 
   //Contribution from segregation energy difference before and after switch; defects one step away from sink will automatically jump to sink  
   if(eisink_flag && (isink[i] > 0 || isink[j] > 0)) 
@@ -910,6 +910,7 @@ double AppRis::site_propensity(int i)
   int j, k, iid, jid, sflag;
 
   clear_events(i);
+  int ei = element[i]; 
   double prob_reaction = 0.0;
   double prob_hop = 0.0;
   double ebarrier = 0.0;
@@ -919,7 +920,7 @@ double AppRis::site_propensity(int i)
   if(reaction_flag) { //reaction flag
     for(j = 0; j < nreaction; j++) {
       if(renable[j] == 0) continue;
-      if(element[i] == rinput[j] && type[i] == rsite[j]) {
+      if(ei == rinput[j] && type[i] == rsite[j]) {
         iid = rinput[j];
         jid = routput[j];
 
@@ -934,10 +935,10 @@ double AppRis::site_propensity(int i)
     }
   }
 
-  if (element[i] < VACANCY) return prob_reaction;
+  if (ei < VACANCY) return prob_reaction;
 
   // for hopping event propensity, the barrier is calculated by site_SP_energy();
-  if (element[i] == VACANCY) { // vacancy hopping 
+  if (ei == VACANCY) { // vacancy hopping 
     for (j = 0; j < numneigh[i]; j++) {
       jid = neighbor[i][j];
       if(element[jid] >= VACANCY) continue; // no vacancy-SIA exchange;
@@ -946,11 +947,10 @@ double AppRis::site_propensity(int i)
       add_event(i,jid,1,-1,hpropensity);
       prob_hop += hpropensity;
     }
-  } else if (element[i] > VACANCY) {// SIA hopping 
+  } else if (ei > VACANCY) {// SIA hopping 
     for (j = 0; j < numneigh[i]; j++) {
       jid = neighbor[i][j];
-      int ei = element[jid]; 
-      if(ei >= VACANCY) continue; // no SIA-SIA exchange;
+      if(element[jid] >= VACANCY) continue; // no SIA-SIA exchange;
 
       int enew[2];
       if(ei == I1) {enew[0] = FE; enew[1] = FE;}      
@@ -964,18 +964,15 @@ double AppRis::site_propensity(int i)
       //and add it to jid to form a new dumbbell 
       //This assumes that the SIA is free to rotate and it may induce artificial diffsuion if not the case. 
       //Will be changed later 
-
       ebarrier = sia_SP_energy(i,jid,enew[0],enew[1],engstyle); // enew[0] stays at i
-      //fprintf(screen,"1, %d %f \n",element[i],ebarrier);
       hpropensity = exp(-ebarrier/KBT);
       add_event(i,jid,1,0,hpropensity);
       prob_hop += hpropensity;
 
       ebarrier = sia_SP_energy(i,jid,enew[1],enew[0],engstyle); // enew[1] stays at i
-      //fprintf(screen,"2, %d %f \n",element[i],ebarrier);
       hpropensity = exp(-ebarrier/KBT);
       add_event(i,jid,1,1,hpropensity);
-      prob_hop += hpropensity;
+      prob_hop += hpropensity; 
     }
   }
   return prob_hop + prob_reaction;
@@ -1156,6 +1153,8 @@ void AppRis::update_propensity(int i)
   // clear echeck array
   for (m = 0; m < nsites; m++)
     echeck[esites[m]] = 0;
+
+  return;
 }
 
 /* ----------------------------------------------------------------------
@@ -1477,7 +1476,7 @@ void AppRis::ballistic(int n)
       }
     }    
 
-    if(findi == 0 ) {
+    if(findi == 0) {
       nsites_local[element[id]] --; // site element number -1 
       //element[id] = I1;
       if(velement == FE && element[iid] == FE) element[iid] = I1; // FeFe interstitial  
@@ -1491,7 +1490,7 @@ void AppRis::ballistic(int n)
       if(velement == NI && element[iid] == NI) element[iid] = I6; // NiNi interstitial  
      
       nsites_local[element[iid]] ++;
-      update_propensity(iid);
+      update_propensity(iid); 
     }
   }
 
@@ -1682,7 +1681,7 @@ double AppRis::total_energy( )
 {
   int j,etype,stype;
   double penergy = 0.0;
-  for(int i = 0; i < nlocal; i++) penergy += sites_energy(i,engstyle);
+  //for(int i = 0; i < nlocal; i++) penergy += sites_energy(i,engstyle);
 
   if(elastic_flag) { // elastic energy 
     for(j = 0; j < nlocal; j++) {
@@ -1762,7 +1761,6 @@ void AppRis::short_range_order()
   for(i=0; i<nelement; i++) {
      for(j=0; j<nelement; j++) {
         double jconcentration = 1.0*nsites_local[j]/nlocal;
-	//fprintf(screen, "%d %d %d %f %f,\n",i,j,total_neighbor[i],sro[i][j],jconcentration);
 	if(jconcentration == 0.0) { // there is no j element 
 	  sro[i][j] = 1.0;
 	} else {
