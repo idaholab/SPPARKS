@@ -781,7 +781,7 @@ double AppRis::site_concentration(int i, int estyle)
 
   if(estyle == 1)  {
      ci = 0.5 - (ci-1)/n1nn;
-     //if(ci < 0.0) ci = -1.0;
+     if(ci < 0.0) ci = 0.0; // attract to up to half of n1nn solutes 
      return 2*ci; // Changing from attraction to repulsion with increasing local concentration
   }
 
@@ -792,7 +792,7 @@ double AppRis::site_concentration(int i, int estyle)
   }
 
   ci = 0.5 - (ci-1)/(n1nn+n2nn);
-  //if(ci < 0.0) ci = -1.0;
+  if(ci < 0.0) ci = -0.0;
   return 2*ci;
 
 }
@@ -1681,7 +1681,7 @@ double AppRis::total_energy( )
 {
   int j,etype,stype;
   double penergy = 0.0;
-  //for(int i = 0; i < nlocal; i++) penergy += sites_energy(i,engstyle);
+  for(int i = 0; i < nlocal; i++) penergy += sites_energy(i,engstyle);
 
   if(elastic_flag) { // elastic energy 
     for(j = 0; j < nlocal; j++) {
