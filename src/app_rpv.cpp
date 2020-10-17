@@ -395,8 +395,8 @@ void AppRpv::input_app(char *command, int narg, char **arg)
     ballistic_flag = 1;
     grow_ballistic();
 
-    bfreq[nballistic] = atoi(arg[0]); // dose rate
-    rdamp[nballistic] = atof(arg[1]); // damage range
+    bfreq[nballistic] = atoi(arg[0]); // mix rate
+    rdamp[nballistic] = atof(arg[1]); // mix range
     if(min_bfreq > bfreq[nballistic]) min_bfreq = bfreq[nballistic];
 
     nballistic ++; // number of mixing events
@@ -1200,7 +1200,7 @@ void AppRpv::check_ballistic(double t)
 }
 
 /* ----------------------------------------------------------------------
-  calculating total energy
+  perform ballistic mixing 
 ------------------------------------------------------------------------- */
 
 void AppRpv::ballistic(int n)

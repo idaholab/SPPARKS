@@ -94,6 +94,10 @@ class AppRis : public AppLattice {
   double *bfreq;
   double bdistance;
 
+//parameter for frenkel pair generation 
+  int nfp,fp_old,fp_new;
+  double fpfreq,fpdistance;
+
 //parameter for time averaged concentration  
   double *ct,*ct_new,dt_new;
 
@@ -145,7 +149,9 @@ class AppRis : public AppLattice {
 
   void grow_ballistic();// ballistic mixing 
   void check_ballistic(double); 
+  void check_frenkelpair(double); 
   void ballistic(int); 
+  void frenkelpair(); 
   void absorption(int); 
   void ballistic_probability(int);
  

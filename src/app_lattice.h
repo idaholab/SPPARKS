@@ -74,6 +74,7 @@ class AppLattice : public App {
 
   virtual void check_reaction() {} //yongfeng
   virtual void check_ballistic(double) {} //yongfeng
+  virtual void check_frenkelpair(double) {} //yongfeng
   virtual void check_sinkmotion(double) {} //Yongfeng 
   virtual double real_time(double) { return 0.0; } //yongfeng
   virtual void time_tracer(double) {} //yongfeng
@@ -94,6 +95,7 @@ class AppLattice : public App {
   double dt_kmc;              // KMC time for one pass thru all sectors
   double dt_step;             // KMC time for single global KMC step
   double min_bfreq;           // minimum mixing frequency 
+  double min_fpfreq;          // minimum frenkel pair production frequency 
 
   int allow_kmc;               // 1 if app supports KMC
   int allow_rejection;         // 1 if app supports rejection KMC
@@ -102,6 +104,7 @@ class AppLattice : public App {
   int numrandom;               // # of RN used by rejection routine
   int reaction_flag;           // 1 if app supports reactions  
   int ballistic_flag;          // 1 if app supports ballistic mixing  
+  int frenkelpair_flag;        // 1 if app supports frenkel pair production  
   int sinkmotion_flag;         // 1 if app supports move of defect sinks  
   int time_flag;               // flag for time tracer by monomers 
   int acceleration_flag;       // flag for accelerated KMC 

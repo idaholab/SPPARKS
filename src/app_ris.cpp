@@ -84,7 +84,7 @@ AppRis::AppRis(SPPARKS *spk, int narg, char **arg) :
   hcount = NULL; //numner of vacancy switch events
   nn1flag = nn2flag = barrierflag = time_flag = 0; //flags for bond energy and migration barriers
 
-  // flags and parameters for sinks, dislocations, reactions and ballistic mixing
+  // flags and parameters for sinks, dislocations, reactions 
   sink_flag = elastic_flag = moduli_flag = dislocation_flag = reaction_flag = acceleration_flag = 0; //flags for sink dislocation and vacancy
   nsink = ndislocation = nreaction = nballistic = ntrap = 0;
 
@@ -108,6 +108,11 @@ AppRis::AppRis(SPPARKS *spk, int narg, char **arg) :
   bfreq = NULL;
   time_old = time_new = NULL;
   min_bfreq = BIGNUMBER;
+
+  // arrays for frenkel pair productionr
+  fpfreq = 0;
+  fp_old = fp_new = 0;
+  min_fpfreq = BIGNUMBER;
 
   // 2NN neigbor information
   numneigh2 = NULL;
@@ -174,7 +179,6 @@ AppRis::~AppRis()
     memory->destroy(time_old);
     memory->destroy(time_new);
   }
-
 
   if (reaction_flag) {// memory use related to reaction
     memory->destroy(rsite);
@@ -451,19 +455,34 @@ void AppRis::input_app(char *command, int narg, char **arg)
       ris_ci[ris_type[i]] = atof(arg[i*2+1]);
     }
   }
-  // ballistic for defect production   
+  // frenkel pair production   
+  else if (strcmp(command, "frenkelpair") ==0) {
+
+    if(narg < 1) error->all(FLERR,"illegal frenkelpair command");
+    frenkelpair_flag = 1;
+    //grow_frenkelpair();
+
+    double dose_rate = atof(arg[0]);// dose rate
+    fpdistance = 0.0;  
+    if(narg > 1) fpdistance = atof(arg[1]);// Frenkel pair separation
+
+    fpfreq = 1e12/nlocal/dose_rate; // time interval to introduce an FP
+    if(min_fpfreq > fpfreq) min_fpfreq = fpfreq;
+  }
+
+  // ballistic mixing   
   else if (strcmp(command, "ballistic") ==0) {
 
     if(narg < 1) error->all(FLERR,"illegal ballistic command");
     ballistic_flag = 1;
     grow_ballistic();
 
-    double dose_rate = atof(arg[0]);// dose rate
+    double mix_rate = atof(arg[0]);// mixing rate (in unit of dpa/s) 
     bdistance = 0.0;  
-    if(narg > 1) bdistance = atof(arg[1]);// Frenkel pair separation
+    if(narg > 1) bdistance = atof(arg[1]);// mixing range
 
-    bfreq[nballistic] = 1e12/nlocal/dose_rate; // time interval to introduce an FP
-    bdistance = bdistance*bdistance; // second order
+    bfreq[nballistic] = 1e12/nlocal/mix_rate; // time interval for mixing 
+    bdistance = bdistance; // second order
     if(min_bfreq > bfreq[nballistic]) min_bfreq = bfreq[nballistic];
     nballistic ++; // number of mixing events
   }
@@ -602,8 +621,8 @@ void AppRis::init_app()
       target_local[i] = 0;
     }
   }*/
-  //ballistic is used for Frenkel pair generation 
 
+  //ballistic mixing 
   for (i = 0; i < nelement; i++) nrecombine[i] = 0;
   for (i = 0; i < nlocal; i++) recombine(i); 
   // initialize the time_list for ballistic mixing
@@ -636,7 +655,7 @@ void AppRis::init_app()
     }
   }
 
- //initialize the time_list for ballistic mixing
+ //initialize the concentration vectors 
 if(concentrationflag) {
   //concentration_field();
   dt_new = 0.0; 
@@ -666,12 +685,12 @@ if(concentrationflag) {
   }*/
 
   // initialization for short range order
-  for(i=0; i<nelement; i++) {
-     total_neighbor[i] = 0;
-     for(j=0; j<nelement; j++) {
-        sro[i][j] = 0.0;
-     }
-  } 
+ for(i=0; i<nelement; i++) {
+    total_neighbor[i] = 0;
+    for(j=0; j<nelement; j++) {
+       sro[i][j] = 0.0;
+    }
+ } 
 }
 
 /* ---------------------------------------------------------------------- */
@@ -1411,19 +1430,19 @@ void AppRis::add_event(int i, int j, int rstyle, int which, double propensity)
 /* ----------------------------------------------------------------------
    check if new Frenkal pairs need to be generated 
 ------------------------------------------------------------------------- */
-void AppRis::check_ballistic(double t)
+void AppRis::check_frenkelpair(double t)
 {
-  int nmix = 0;
-  for(int i = 0; i < nballistic; i ++) {
-     time_new[i] = static_cast<int>(t/bfreq[i]);
-     nmix = time_new[i] - time_old[i];
-     if(nmix > 100) fprintf(screen,"Too many Frenkle Pairs generated one time, %d \n", nmix);
-     while (nmix > 0) {  //perform mixing nmix times
-       nmix --;
-       ballistic(i);
-       if(nmix == 0) time_old[i] = time_new[i];  //update time
-    }
+  int nfp = 0;
+  fp_new = static_cast<int>(t/fpfreq);
+  nfp = fp_new - fp_old;
+  if(nfp > 100) fprintf(screen,"Too many Frenkle Pairs generated one time, %d \n", nfp);
+  while (nfp > 0) {  //generating nfp frenkel pairs
+    nfp --;
+    frenkelpair();
+    if(nfp == 0) fp_old = fp_new;  //update time
   }
+
+  return;
 }
 
 /* ----------------------------------------------------------------------
@@ -1432,14 +1451,13 @@ void AppRis::check_ballistic(double t)
   are always produced by the same processor. To be modified later.  
 ------------------------------------------------------------------------- */
 
-void AppRis::ballistic(int n)
+void AppRis::frenkelpair()
 { 
   int vid,iid;
-
+  
   // creat an vacancy
   int allsites = nsites_local[FE] + nsites_local[CU] + nsites_local[NI]; 
   if(allsites == 0) error->all(FLERR, "No matrix sites available for FP generation!");
-  
   nFPair ++;   
   int findv = 1;
   int velement = -1; 
@@ -1459,17 +1477,18 @@ void AppRis::ballistic(int n)
   }
   
   //return; // spk_v no interstitial creation for test 
-  //create an interstitial  
+  //create an interstitial
+  double dr = fpdistance;  
   int findi = 1; 
   while (findi) { 
     int id = static_cast<int> (nlocal*ranris->uniform());
 
     if(id < nlocal && element[id] < VACANCY) {
-      if(bdistance = 0.0) { 
+      if(fpdistance = 0.0) {// why this condition? double check later  
 	findi = 0;
       } else {
         double dij = distanceIJ(vid,id);
-        if(dij <= bdistance) { 
+        if(dij <= 3.0) { 
 	  findi = 0;
 	  iid = id;
 	}
@@ -1497,6 +1516,70 @@ void AppRis::ballistic(int n)
   return;
 }
 
+/* ----------------------------------------------------------------------
+   check if a mixing event if needed 
+------------------------------------------------------------------------- */
+void AppRis::check_ballistic(double t)
+{
+  int nmix = 0;
+  for(int i = 0; i < nballistic; i ++) {
+     time_new[i] = static_cast<int>(t/bfreq[i]);
+     nmix = time_new[i] - time_old[i];
+     while (nmix > 0) {  //perform mixing nmix times
+       nmix --;
+       ballistic(i);
+       if(nmix == 0) time_old[i] = time_new[i];  //update time
+    }
+  }
+}
+
+/* ----------------------------------------------------------------------
+  perform ballistic mixing. randomly mixing two atoms (no v, sia mixing)  
+------------------------------------------------------------------------- */
+
+void AppRis::ballistic(int i)
+{ 
+  int id,itype,iid,jid;
+
+  // find atom i 
+  int allsites = nsites_local[FE] + nsites_local[CU] + nsites_local[NI]; 
+  if(allsites == 0) error->all(FLERR, "No matrix sites available for mixing!");
+  if(allsites == nsites_local[FE]) error->all(FLERR, "No matrix sites available for mixing!");
+  if(allsites == nsites_local[CU]) error->all(FLERR, "No matrix sites available for mixing!");
+  if(allsites == nsites_local[NI]) error->all(FLERR, "No matrix sites available for mixing!");
+  
+  int findi = 1;
+  while (findi) { 
+    id = static_cast<int> (nlocal*ranris->uniform());
+    if(id < nlocal && element[id] < VACANCY) {
+      iid = id; 
+      findi = 0;
+    }
+  }
+  
+  //find an element for mix  
+  int findj = 1; 
+  while (findj) { 
+    id = static_cast<int> (nlocal*ranris->uniform());
+    if(id < nlocal && element[id] < VACANCY) {
+        double dij = distanceIJ(iid,id);
+	double mixprobability = exp(-dij/bdistance);
+        if(ranris->uniform() <= bdistance) { 
+	  findj = 0;
+	  jid = id;
+	} 
+    }    
+  }
+
+  //switch iid and jid and update the propensity  
+  itype = element[iid];
+  element[iid] = element[jid];
+  element[jid] = itype;
+  update_propensity(iid);
+  update_propensity(jid);
+
+  return;
+}
 /* ----------------------------------------------------------------------
    check if any sink motion needs to be performed  
 ------------------------------------------------------------------------- */
@@ -3122,8 +3205,8 @@ double AppRis::distanceIJ(int i, int j)
        dij[k] = xyz[j][k] - xyz[i][k];
        if (periodicity[k] && dij[k] >= lprd[k]/2.0) dij[k] -= lprd[k];
        if (periodicity[k] && dij[k] <= -lprd[k]/2.0) dij[k] += lprd[k];
-       dij[3] += dij[k];
+       dij[3] += dij[k]*dij[k];
    } 
 
-   return dij[3];
+   return sqrt(dij[3]); //square root of distance
 }
