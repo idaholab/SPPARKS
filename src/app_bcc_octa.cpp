@@ -117,6 +117,8 @@ AppBccOcta::AppBccOcta(SPPARKS *spk, int narg, char **arg) :
 
   // He occupation of a vacancy 
   iHe=NULL;
+  // default no preexisting voids 
+  nvoid=0;
 }
 
 /* ---------------------------------------------------------------------- */
@@ -359,6 +361,18 @@ void AppBccOcta::input_app(char *command, int narg, char **arg)
     memory->create(ncelem,nctype,"app/bccocta:ncelem");
     for (i=0; i<nctype; i++) ncelem[i] = atoi(arg[i+2]);
   }
+  // add preexisting voidsk 
+  else if (strcmp(command, "void") ==0) {
+
+    if (narg < 4) error->all(FLERR,"Illegal void command");
+    
+    voidradius[nvoid] = atof(arg[0]);
+    voidcenter[nvoid][0] = atof(arg[1]);
+    voidcenter[nvoid][1] = atof(arg[2]);
+    voidcenter[nvoid][2] = atof(arg[3]);
+    if(narg > 4) heoverv[nvoid] = atof(arg[4]);
+    nvoid ++;
+  }
 
   else error->all(FLERR,"Unrecognized command");
 }
@@ -455,8 +469,56 @@ void AppBccOcta::init_app()
     sigmamfp *= 2.0; //2*sigma^2   
   }
 
+  // create pre-existing voids 
+  if(nvoid > 0) prevoid();
+
 }
 
+/* ---------------------------------------------------------------------- */
+/* --------------------------- add two pre-existing voids  -------------- */
+
+void AppBccOcta::prevoid()
+{ 
+  int i,j,k;
+  //int nvoid = 2;
+  //double voidcenter[2][3];
+  //double voidradius = 5.0; 
+  double xlo[3],lprd[3],dij[4];
+
+  // domain size and boundaries 
+  lprd[0] = domain->xprd;
+  lprd[1] = domain->yprd;
+  lprd[2] = domain->zprd;
+  
+  xlo[0] = domain->boxxlo;
+  xlo[1] = domain->boxylo;
+  xlo[2] = domain->boxzlo;
+  
+  // void size 
+  //voidcenter[0][0] = voidcenter[0][1] = voidcenter[0][2] = 0.0;
+  //voidcenter[1][0] = xlo[0]; 
+  //voidcenter[1][1] = xlo[1]; 
+  //voidcenter[1][2] = xlo[2]; 
+
+  for(i = 0; i < nvoid; i++) {
+     voidradius[i] *= voidradius[i];
+     for(j = 0; j < nlocal; j++) {
+	if(type[j] == 2) continue; 
+        for(k = 0; k < 3; k++) {
+           dij[k] = xyz[j][k] - voidcenter[i][k];
+	   if(dij[k] > lprd[k]/2.0) dij[k] -= lprd[k];
+	   if(dij[k] < -lprd[k]/2.0) dij[k] += lprd[k];
+	}
+
+	dij[3] = dij[0]*dij[0] + dij[1]*dij[1] + dij[2]*dij[2];
+	if(dij[3] > voidradius[i]) continue;
+	element[j] = VACANCY;
+	if(ranbccocta->uniform() < heoverv[i]) element[j] = SB;
+     }
+  }
+
+  return;
+}      
 /* ---------------------------------------------------------------------- */
 /* ---------------------------initiation of looing-up list -------------- */
 

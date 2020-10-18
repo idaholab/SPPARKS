@@ -92,6 +92,10 @@ class AppBccOcta : public AppLattice {
   int ntrap; 
   int *trap_type;
 
+//parameter for adding preexisting voids 
+  int nvoid;
+  double voidradius[10],voidcenter[10][3],heoverv[10]; 
+
   struct Event {           // one event for an owned site
     int style;             // reaction style = HOP,RECOMBINE 
     int which;             // which reaction of this type
@@ -131,11 +135,12 @@ class AppBccOcta : public AppLattice {
   void check_ballistic(double); 
   void sia_concentration(double); // track sia concentration 
 
-  void grow_sinks(); //sink
+  void grow_sinks(); // sink
   void sink_creation(int);
 
-  int match(int); //cluster
-  void cluster();
+  int match(int); // cluster analysis 
+  void cluster(); 
+  void prevoid(); // two add preexisting voids
 };
 
 }
