@@ -612,15 +612,15 @@ void AppRis::init_app()
   MPI_Allreduce(&flag,&flagall,1,MPI_INT,MPI_SUM,world);
   if (flagall) error->all(FLERR,"One or more sites have invalid values");
 
-  // check if reactions need to be enabled or disabled
-  /*if(reaction_flag) {
+  //check if reactions need to be enabled or disabled
+  if(reaction_flag) {
     for( i = 0; i< nreaction; i++) {
       rcount[i] = 0;
       renable[i] = 0;
       target_global[i] = 0;
       target_local[i] = 0;
     }
-  }*/
+  }
 
   //ballistic mixing 
   for (i = 0; i < nelement; i++) nrecombine[i] = 0;
@@ -749,7 +749,7 @@ double AppRis::sites_energy(int i, int estyle)
   for (j = 0; j < n1nn; j++) {
     jd = neighbor[i][j];
 
-    //adjust A-V bond based on local concentration 
+    //adjust A-V bond based on local concentration, currently added for solute trapping  
     if(ielement==NI && element[jd] == VACANCY) {
        ci = site_concentration(i,estyle);
        eng += ci*ebond1[NI][VACANCY];
@@ -758,7 +758,7 @@ double AppRis::sites_energy(int i, int estyle)
        eng += ci*ebond1[NI][VACANCY];
     } else {   
        eng += ebond1[ielement][element[jd]];
-    } 
+    }
   }
 
   //energy from 2NN bonds
@@ -790,9 +790,9 @@ double AppRis::sites_energy(int i, int estyle)
 double AppRis::site_concentration(int i, int estyle)
 { 
   double ci = 0.0;
- 
+  return 1.0; 
   int n1nn = numneigh[i]; //num of 1NN
-
+  
   for(int j = 0; j < n1nn; j++) { 
      int jd = neighbor[i][j];
      if(element[jd]==VACANCY) ci ++; 
@@ -934,22 +934,28 @@ double AppRis::site_propensity(int i)
   double prob_hop = 0.0;
   double ebarrier = 0.0;
   double hpropensity = 0.0;
+  double deltaE = 0.0;
 
   // Chech possible reactions with barriers 
   if(reaction_flag) { //reaction flag
     for(j = 0; j < nreaction; j++) {
-      if(renable[j] == 0) continue;
+      //if(renable[j] == 0) continue;
       if(ei == rinput[j] && type[i] == rsite[j]) {
         iid = rinput[j];
         jid = routput[j];
 
-        if(eisink_flag && eisink[element[jid]][isink[i]] == 0.0) {// i is not a sink for jid, otherwise no reaction allowed
-          ebarrier = rbarrier[j];
-          if(elastic_flag) ebarrier += elastic_energy(i,jid) - elastic_energy(i,iid);
-          hpropensity = rrate[j] * exp(-ebarrier/KBT);
-          add_event(i,jid,2,j,hpropensity);
-          prob_reaction += hpropensity;
-        }
+        if(eisink_flag && eisink[element[jid]][isink[i]] != 0.0) continue; //no production at sink 
+       	deltaE = -sites_energy(i,engstyle); //site energy before reaction
+        element[i] = jid;
+        deltaE += sites_energy(i,engstyle);  //site energy after reaction
+        element[i] = ei;
+
+	//ebarrier = delta_mu - delta_E
+        ebarrier = -rbarrier[j] + deltaE;
+        hpropensity = rrate[j] * exp(-ebarrier/KBT);
+        //fprintf(screen,"barrier %d %d %f %f %f \n",ei,jid,ebarrier,deltaE,rbarrier[j]);
+        add_event(i,jid,2,j,hpropensity);
+        prob_reaction += hpropensity;
       }
     }
   }
@@ -1194,7 +1200,7 @@ void AppRis::check_reaction()
     MPI_Allreduce(&nsites_local[i],&nsites_global,1,MPI_INT,MPI_SUM,world);
 
     for(n = 0; n < nreaction; n++){
-      if(i+1 == routput[n]) target_global[n] = rtarget[n] - nsites_global;
+      if(i == routput[n]) target_global[n] = rtarget[n] - nsites_global;
     }
   }
 
@@ -1743,12 +1749,12 @@ int AppRis::recombine(int i)
       nsites_local[eii] ++;
 
      // if(mfpflag) {hcount[i] = 0; hcount[m] = 0;}
-     /* update reaction target number
+     // update reaction target number
      if(reaction_flag == 1) {
        for(int k = 0; k < nreaction; k++) {
        if(routput[k] == element[i] || routput[k] == element[m])  target_local[k] ++;
        }
-     }*/ 
+     } 
      return m;
   }
 
